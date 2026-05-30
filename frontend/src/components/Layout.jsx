@@ -26,11 +26,16 @@ export default function Layout({ children }) {
     navigate('/login')
   }
 
-  // Check if we are on the emergency page, which doesn't need header/footer or needs a specialized minimalist header
+  // Check if we are on the emergency page or dashboard, which manage their own layout
   const isEmergencyPage = location.pathname.startsWith('/emergency')
+  const isDashboardPage = location.pathname === '/dashboard'
 
   if (isEmergencyPage) {
     return <div style={{ minHeight: '100vh', backgroundColor: theme.colors.bgSecondary }}>{children}</div>
+  }
+
+  if (isDashboardPage) {
+    return <>{children}</>
   }
 
   return (

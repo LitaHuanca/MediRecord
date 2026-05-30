@@ -64,6 +64,25 @@ a:hover {
   }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dashboard new sidebar layout responsive */
+@media (max-width: 1024px) {
+  .dashboard-shell aside {
+    width: 220px !important;
+  }
+}
+@media (max-width: 820px) {
+  .dashboard-two-col-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-stat-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 @keyframes pulseEmergency {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
@@ -173,3 +192,40 @@ a:hover {
   }
 }
 
+/* Landing page responsive layout */
+@media (max-width: 1024px) {
+  .landing-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
+    min-height: auto !important;
+    padding-top: 44px !important;
+  }
+
+  .landing-service-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-feature-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .landing-about-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .landing-trust-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-feature-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .landing-feature-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
