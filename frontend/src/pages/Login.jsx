@@ -13,12 +13,11 @@ export default function Login() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Se comprueba que el usuario ya tiene una sesión activa
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate('/dashboard')
     })
 
-    // Check lockout from localStorage
     const savedLockout = localStorage.getItem('login_lockout_until')
     if (savedLockout) {
       const remaining = new Date(savedLockout) - new Date()
@@ -30,7 +29,7 @@ export default function Login() {
     }
   }, [navigate])
 
-  // Count down lockout timer
+  // Se cuenta los intentos fallidos y se bloquea el acceso por 1 minuto después de 5 intentos
   useEffect(() => {
     if (!lockoutTime) return
     const timer = setInterval(() => {
@@ -69,7 +68,7 @@ export default function Login() {
         throw authError
       }
 
-      // Successful login
+      // Login exitoso, se limpia el contador de intentos
       setAttempts(0)
       navigate('/dashboard')
     } catch (err) {
