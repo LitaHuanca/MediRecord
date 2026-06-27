@@ -194,14 +194,14 @@ export default function EmergencyView() {
             <p style={logoSubStyle}>Ficha Vital de Emergencia</p>
           </div>
         </div>
-        <div style={verifiedPillStyle}>
+        <div style={verifiedPillStyle} className="emergency-topbar-verified">
           <span style={verifiedDotStyle}></span>
-          Código activo y verificado
+          <span>Código activo y verificado</span>
         </div>
       </div>
 
       {/* ── PAGE INNER ── */}
-      <div style={innerStyle}>
+      <div style={innerStyle} className="emergency-inner">
 
         {/* ── HERO PATIENT CARD ── */}
         <div style={heroCardStyle}>
@@ -213,10 +213,10 @@ export default function EmergencyView() {
             </div>
 
             {/* Avatar + name row */}
-            <div style={patientRowStyle}>
+            <div style={patientRowStyle} className="emergency-patient-row">
               <div style={patientAvatarStyle}>{patientInitials}</div>
               <div style={{ flex:1, minWidth:0 }}>
-                <h1 style={patientNameStyle}>{ficha?.nombre}</h1>
+                <h1 style={patientNameStyle} className="emergency-patient-name">{ficha?.nombre}</h1>
                 <div style={pillsRowStyle}>
                   <span style={infoPillStyle}>{getAge(ficha?.fecha_nacimiento)} años</span>
                   <span style={infoPillStyle}>{ficha?.sexo?.charAt(0).toUpperCase() + ficha?.sexo?.slice(1)}</span>
@@ -232,7 +232,7 @@ export default function EmergencyView() {
                 </div>
               </div>
               {/* Right side meta */}
-              <div style={heroMetaStyle}>
+              <div style={heroMetaStyle} className="emergency-hero-meta">
                 <p style={heroMetaLabelStyle}>ÚLTIMA ACTUALIZACIÓN</p>
                 <p style={heroMetaValueStyle}>
                   {ficha?.ultima_actualizacion
@@ -268,7 +268,7 @@ export default function EmergencyView() {
 
         {/* ── QUICK ACTIONS ROW ── */}
         {primerContacto && (
-          <div style={quickActionsGridStyle}>
+          <div style={quickActionsGridStyle} className="emergency-quick-actions">
             <a href={`tel:${primerContacto.telefono}`} style={quickCardStyle}>
               <div style={quickIconCircleStyle('#DCFCE7')}>
                 <IconPhone />
@@ -300,7 +300,7 @@ export default function EmergencyView() {
         )}
 
         {/* ── MAIN GRID (left 55% / right 45%) ── */}
-        <div style={mainGridStyle}>
+        <div style={mainGridStyle} className="emergency-main-grid">
 
           {/* ─ LEFT COLUMN ─ */}
           <div style={leftColStyle}>
@@ -315,7 +315,7 @@ export default function EmergencyView() {
             </div>
 
             {/* 2x2 data grid */}
-            <div style={medGridStyle}>
+            <div style={medGridStyle} className="emergency-med-grid">
 
               {/* Alergias */}
               <div style={medCardStyle}>

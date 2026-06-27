@@ -160,6 +160,8 @@ export default function Dashboard() {
 
   // User menu dropdown
   const [showUserMenu, setShowUserMenu] = useState(false)
+  // Mobile sidebar toggle
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // ── FETCH DATA ──────────────────────────────────────────
   const fetchDashboardData = async () => {
@@ -389,10 +391,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={shellStyle} onClick={() => showUserMenu && setShowUserMenu(false)}>
+    <div style={shellStyle} onClick={() => { showUserMenu && setShowUserMenu(false); sidebarOpen && setSidebarOpen(false) }}>
+
+      {/* Mobile sidebar overlay */}
+      <div className="dashboard-overlay" onClick={() => setSidebarOpen(false)} />
 
       {/* ═══ SIDEBAR ══════════════════════════════════════ */}
-      <aside style={sidebarStyle}>
+      <aside style={sidebarStyle} className={`dashboard-sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         {/* Logo */}
         <div style={logoAreaStyle}>
           <div style={logoCircleStyle}>
@@ -453,10 +458,17 @@ export default function Dashboard() {
       <div style={mainAreaStyle}>
 
         {/* ── TOP BAR ───────────────────────────────────── */}
-        <header style={topBarStyle}>
-          <div style={searchWrapStyle}>
-            <span style={searchIconStyle}><IconSearch /></span>
-            <input type="search" placeholder="Buscar en mi ficha, accesos o configuración..." style={searchInputStyle} />
+        <header style={topBarStyle} className="dashboard-topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button className="dashboard-hamburger" onClick={e => { e.stopPropagation(); setSidebarOpen(v => !v) }} aria-label="Menú">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <div style={searchWrapStyle}>
+              <span style={searchIconStyle}><IconSearch /></span>
+              <input type="search" placeholder="Buscar..." style={searchInputStyle} className="dashboard-search-input" />
+            </div>
           </div>
           <div style={topBarRightStyle}>
             <button style={topBarIconBtnStyle} onClick={fetchDashboardData} title="Actualizar"><IconRefresh /></button>
@@ -494,10 +506,10 @@ export default function Dashboard() {
         </header>
 
         {/* ── CONTENT ───────────────────────────────────── */}
-        <main style={contentStyle}>
+        <main style={contentStyle} className="dashboard-content">
 
           {/* Heading row */}
-          <div style={headingRowStyle}>
+          <div style={headingRowStyle} className="dashboard-heading-row">
             <div>
               <p style={breadcrumbStyle}>Inicio / Dashboard</p>
               <h1 style={pageTitleStyle}>Panel de Ficha Vital</h1>
@@ -528,7 +540,7 @@ export default function Dashboard() {
           )}
 
           {/* Stat cards */}
-          <div style={statRowStyle}>
+          <div style={statRowStyle} className="dashboard-stat-row">
             <div style={statCardStyle}>
               <p style={statLabelStyle}>ESTADO DEL QR</p>
               <p style={statValueStyle}>{activeToken ? 'Activo' : 'Inactivo'}</p>
@@ -551,7 +563,7 @@ export default function Dashboard() {
           </div>
 
           {/* 2-column grid */}
-          <div style={twoColGridStyle}>
+          <div style={twoColGridStyle} className="dashboard-two-col-grid">
 
             {/* ── LEFT: Estado Ficha con edición inline ── */}
             <div style={cardStyle}>
@@ -577,7 +589,7 @@ export default function Dashboard() {
               </div>
               <p style={cardSubStyle}>Resumen general de datos médicos completados.</p>
 
-              <div style={fichaBodyStyle}>
+              <div style={fichaBodyStyle} className="dashboard-ficha-body">
                 <DonutChart percent={completionPercent} />
 
                 <div style={checkListStyle}>
@@ -703,7 +715,7 @@ export default function Dashboard() {
               </div>
               <p style={cardSubStyle}>Identificador público de acceso rápido.</p>
 
-              <div style={qrSectionStyle}>
+              <div style={qrSectionStyle} className="dashboard-qr-section">
                 <div style={qrImageWrapStyle}>
                   {qrImageUrl ? (
                     <img src={qrImageUrl} alt="Código QR de emergencia" style={qrImgStyle} />
@@ -712,7 +724,7 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div style={qrInfoColStyle}>
+                <div style={qrInfoColStyle} className="dashboard-qr-info-col">
                   <p style={qrInfoTitleStyle}>Ficha Vital disponible</p>
                   <p style={qrInfoSubStyle}>Imprime este QR o colócalo en tu casco, DNI, tarjeta física o pantalla de bloqueo.</p>
                   {activeToken && (

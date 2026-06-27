@@ -42,7 +42,7 @@ export default function Layout({ children }) {
     <div style={containerStyle}>
       {/* HEADER */}
       <header style={headerStyle}>
-        <div style={navContainerStyle}>
+        <div style={navContainerStyle} className="nav-container">
           <Link to="/" style={logoLinkStyle}>
             <div style={logoIconStyle}>
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -51,27 +51,27 @@ export default function Layout({ children }) {
             </div>
             <div>
               <span style={logoTextStyle}>MediRecord</span>
-              <span style={logoSubStyle}>Ficha Vital UNMSM</span>
+              <span style={logoSubStyle} className="nav-logo-sub">Ficha Vital UNMSM</span>
             </div>
           </Link>
 
-          <nav style={navLinksStyle}>
+          <nav className="nav-links">
             {user ? (
               <>
                 <Link to="/dashboard" style={location.pathname === '/dashboard' ? activeLinkStyle : linkStyle}>
                   Dashboard
                 </Link>
                 <Link to="/registro" style={location.pathname === '/registro' ? activeLinkStyle : linkStyle}>
-                  Registrar Ficha
+                  Mi Ficha
                 </Link>
                 <div style={userBadgeStyle}>
                   <div style={avatarStyle}>
                     {user.email?.charAt(0).toUpperCase()}
                   </div>
-                  <span style={emailTextStyle} title={user.email}>{user.email?.split('@')[0]}</span>
+                  <span style={emailTextStyle} className="nav-email-text" title={user.email}>{user.email?.split('@')[0]}</span>
                 </div>
                 <button onClick={handleLogout} style={logoutButtonStyle}>
-                  Cerrar Sesión
+                  Salir
                 </button>
               </>
             ) : (

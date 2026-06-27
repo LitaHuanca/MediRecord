@@ -113,7 +113,7 @@ function LandingPage() {
             </div>
           </div>
 
-          <div style={heroVisualStyle} aria-hidden="true">
+          <div style={heroVisualStyle} aria-hidden="true" className="landing-hero-visual">
             <div style={redCurveStyle}></div>
             <div style={doctorCardStyle}>
               <div style={{ ...floatingCardStyle, ...qrMiniStyle }}>
