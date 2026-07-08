@@ -15,7 +15,8 @@ BASE_URL = os.getenv("TEST_API_URL", "https://medirecord-staging.onrender.com")
 TEST_USER = {
     "email": "test_sqa_grupo5@medirecord.com",
     "password": "TestSQA2026!",
-    "nombre_completo": "Usuario Test SQA",
+    "nombres": "Usuario Test",
+    "apellido_paterno": "SQA",
     "numero_documento": "99999999",
     "telefono": "987654321",
 }
@@ -38,7 +39,8 @@ def registered_user(client):
     response = client.post("/auth/register", json={
         "email": TEST_USER["email"],
         "password": TEST_USER["password"],
-        "nombre_completo": TEST_USER["nombre_completo"],
+        "nombres": TEST_USER["nombres"],
+        "apellido_paterno": TEST_USER["apellido_paterno"],
         "numero_documento": TEST_USER["numero_documento"],
     })
     # 201 = creado, 400 = ya existe — ambos son válidos para continuar

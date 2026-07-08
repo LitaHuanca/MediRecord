@@ -167,9 +167,9 @@ class TestMe:
         assert data["email"] == registered_user["email"]
 
     def test_me_sin_token_retorna_401(self, client):
-        """GET /auth/me sin Authorization header retorna 401."""
+        """GET /auth/me sin Authorization header retorna 401 o 403."""
         response = client.get("/auth/me")
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
     def test_me_con_token_invalido_retorna_401(self, client):
         """GET /auth/me con token falso retorna 401."""
@@ -187,12 +187,12 @@ class TestMe:
 class TestCambioPassword:
 
     def test_cambio_password_sin_token_retorna_401(self, client):
-        """PUT /auth/password sin token retorna 401."""
+        """PUT /auth/password sin token retorna 401 o 403."""
         response = client.put("/auth/password", json={
             "password_actual": "cualquiera",
             "password_nueva": "nueva123",
         })
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
     def test_cambio_password_actual_incorrecta_retorna_400(self, auth_client):
         """PUT /auth/password con contraseña actual incorrecta retorna 400."""

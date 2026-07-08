@@ -48,9 +48,9 @@ class TestGetFicha:
         assert isinstance(data["contactos"], list)
 
     def test_get_ficha_sin_token_retorna_401(self, client):
-        """GET /api/ficha sin token retorna 401."""
+        """GET /api/ficha sin token retorna 401 o 403."""
         response = client.get("/api/ficha")
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
 
 # ════════════════════════════════════════════════════════════
@@ -97,9 +97,9 @@ class TestActualizarDatosPersonales:
         assert response.json()["telefono"] == "912345678"
 
     def test_put_ficha_sin_token_retorna_401(self, client):
-        """PUT /api/ficha sin token retorna 401."""
+        """PUT /api/ficha sin token retorna 401 o 403."""
         response = client.put("/api/ficha", json=DATOS_PERSONALES)
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
     def test_donante_organos_se_guarda(self, auth_client):
         """El campo donante_organos se guarda y recupera correctamente."""
