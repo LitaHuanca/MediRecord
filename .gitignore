@@ -10,8 +10,18 @@ dist/
 .env
 .env.local
 .env.development.local
+.env.test
 .env.test.local
 .env.production.local
+
+# Tests
+__pycache__/
+.pytest_cache/
+coverage.xml
+htmlcov/
+playwright-report/
+playwright-results.xml
+test-results/
 
 # Archivos de logs y errores
 npm-debug.log*

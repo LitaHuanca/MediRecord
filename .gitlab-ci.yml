@@ -1,0 +1,54 @@
+stages:
+  - test
+  - e2e
+
+variables:
+  TEST_API_URL: "https://medirecord-staging.onrender.com"
+  E2E_BASE_URL: "https://medirecor-deployada-2aspxo5m1-lita-park-s-projects.vercel.app"
+  E2E_API_URL:  "https://medirecord-staging.onrender.com"
+  # JWT_SECRET y DATABASE_URL se configuran como CI/CD Variables en GitLab
+  # (Settings → CI/CD → Variables) — nunca hardcodeadas aquí
+
+# ── Tests unitarios e integración (pytest) ─────────────────────────────────
+pytest:
+  stage: test
+  image: python:3.11-slim
+  before_script:
+    - pip install --no-cache-dir -r requirements-test.txt
+    - pip install --no-cache-dir -r backend/requirements.txt
+  script:
+    - pytest tests/unit/ tests/integration/ -v --tb=short --cov=backend/app --cov-report=xml:coverage.xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - coverage.xml
+    expire_in: 7 days
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  only:
+    - develop
+    - merge_requests
+
+# ── Tests E2E con Playwright ───────────────────────────────────────────────
+playwright:
+  stage: e2e
+  image: mcr.microsoft.com/playwright:v1.49.0-jammy
+  before_script:
+    - npm install
+    - npx playwright install chromium
+  script:
+    - npx playwright test tests/e2e/ --reporter=junit,list
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - playwright-results.xml
+    reports:
+      junit: playwright-results.xml
+    expire_in: 7 days
+  only:
+    - develop
+    - merge_requests
+  allow_failure: true  # E2E pueden fallar por cold start de Render sin bloquear el pipeline
