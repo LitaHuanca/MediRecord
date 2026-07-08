@@ -41,12 +41,11 @@ CREDENCIALES_INCORRECTAS = {
 DATOS_PERSONALES = {
     "telefono": "987654321",
     "tipo_sangre": "O+",
-    "sexo": "Femenino",
     "fecha_nacimiento": "1995-03-15",
     "donante_organos": True,
     "peso_kg": 60.5,
     "altura_cm": 165,
-    "notas_adicionales": "Paciente de prueba SQA — no usar en producción.",
+    "notas_adicionales": "Paciente de prueba SQA",
 }
 
 # ── Alergias de prueba ────────────────────────────────────────────────────────

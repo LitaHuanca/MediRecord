@@ -35,7 +35,8 @@ class TestRegistro:
         usuario_unico = {
             "email": f"test_{uuid.uuid4().hex[:8]}@medirecord.com",
             "password": "TestSQA2026!",
-            "nombre_completo": "Usuario Temp Test",
+            "nombres": "Usuario Temp",
+            "apellido_paterno": "Test",
             "numero_documento": str(uuid.uuid4().int)[:8],
         }
         response = client.post("/auth/register", json=usuario_unico)
@@ -49,7 +50,8 @@ class TestRegistro:
         response = client.post("/auth/register", json={
             "email": registered_user["email"],  # email ya registrado
             "password": "OtraPass123!",
-            "nombre_completo": "Otro Nombre",
+            "nombres": "Otro",
+            "apellido_paterno": "Nombre",
             "numero_documento": "11111111",
         })
         assert response.status_code in (400, 409)
@@ -59,7 +61,8 @@ class TestRegistro:
         response = client.post("/auth/register", json={
             "email": "email_nuevo_unico@medirecord.com",
             "password": "TestSQA2026!",
-            "nombre_completo": "Nombre Nuevo",
+            "nombres": "Nombre",
+            "apellido_paterno": "Nuevo",
             "numero_documento": registered_user["numero_documento"],  # DNI duplicado
         })
         assert response.status_code in (400, 409)

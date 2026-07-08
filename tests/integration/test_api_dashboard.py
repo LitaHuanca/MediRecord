@@ -181,7 +181,7 @@ class TestMedicamentos:
         response = auth_client.get("/api/ficha")
         assert isinstance(response.json()["medicamentos"], list)
 
-    def test_put_ficha_sin_body_retorna_422(self, auth_client):
-        """PUT /api/ficha sin body retorna 422."""
+    def test_put_ficha_body_vacio_acepta_defaults(self, auth_client):
+        """PUT /api/ficha con body vacío retorna 200 (todos los campos tienen default)."""
         response = auth_client.put("/api/ficha", json={})
-        assert response.status_code == 422
+        assert response.status_code == 200
