@@ -46,7 +46,7 @@ class TestRegistro:
         assert data["access_token"] != ""
 
     def test_registro_email_duplicado_retorna_error(self, client, registered_user):
-        """Registrar con un email ya existente debe retornar error."""
+        """Registrar con un email ya existente debe retornar error 409."""
         response = client.post("/auth/register", json={
             "email": registered_user["email"],  # email ya registrado
             "password": "OtraPass123!",
@@ -54,7 +54,7 @@ class TestRegistro:
             "apellido_paterno": "Nombre",
             "numero_documento": "11111111",
         })
-        assert response.status_code in (400, 409)
+        assert response.status_code in (400, 409)  # API retorna 409 Conflict
 
     def test_registro_dni_duplicado_retorna_error(self, client, registered_user):
         """Registrar con un DNI ya existente debe retornar error."""

@@ -43,8 +43,8 @@ def registered_user(client):
         "apellido_paterno": TEST_USER["apellido_paterno"],
         "numero_documento": TEST_USER["numero_documento"],
     })
-    # 201 = creado, 400 = ya existe — ambos son válidos para continuar
-    assert response.status_code in (201, 400), (
+    # 201 = creado, 400/409 = ya existe — todos válidos para continuar
+    assert response.status_code in (201, 400, 409), (
         f"Error inesperado al registrar usuario de prueba: {response.status_code} {response.text}"
     )
     return TEST_USER

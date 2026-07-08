@@ -7,27 +7,31 @@ Ningún dato aquí corresponde a una persona real.
 USUARIO_VALIDO = {
     "email": "test_sqa_grupo5@medirecord.com",
     "password": "TestSQA2026!",
-    "nombre_completo": "Usuario Test SQA",
+    "nombres": "Usuario Test",
+    "apellido_paterno": "SQA",
     "numero_documento": "99999999",
 }
 
 USUARIO_DUPLICADO_EMAIL = {
     "email": "test_sqa_grupo5@medirecord.com",  # mismo email
     "password": "OtraPass123",
-    "nombre_completo": "Otro Usuario",
+    "nombres": "Otro",
+    "apellido_paterno": "Usuario",
     "numero_documento": "88888888",
 }
 
 USUARIO_DUPLICADO_DNI = {
     "email": "otro_test@medirecord.com",
     "password": "OtraPass123",
-    "nombre_completo": "Otro Usuario DNI",
+    "nombres": "Otro",
+    "apellido_paterno": "Usuario",
     "numero_documento": "99999999",  # mismo DNI
 }
 
 USUARIO_SIN_EMAIL = {
     "password": "TestSQA2026!",
-    "nombre_completo": "Sin Email",
+    "nombres": "Sin",
+    "apellido_paterno": "Email",
     "numero_documento": "77777777",
 }
 
@@ -41,6 +45,7 @@ CREDENCIALES_INCORRECTAS = {
 DATOS_PERSONALES = {
     "telefono": "987654321",
     "tipo_sangre": "O+",
+    "sexo": "femenino",
     "fecha_nacimiento": "1995-03-15",
     "donante_organos": True,
     "peso_kg": 60.5,
@@ -76,7 +81,7 @@ MEDICAMENTO_TEST = {
 CONTACTO_TEST = {
     "nombre": "Contacto Prueba SQA",
     "telefono": "912345678",
-    "relacion": "Familiar",
+    "relacion": "familiar",
     "orden_prioridad": 1,
 }
 
