@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { isAuthenticated } from './api'
 
 // Layout & Route Guards
 import Layout from './components/Layout'
@@ -50,13 +49,7 @@ const steps = [
 ]
 
 function LandingPage() {
-  const [session, setSession] = useState(null)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-  }, [])
+  const session = isAuthenticated()
 
   return (
     <div style={landingShellStyle} className="animate-fade-in">

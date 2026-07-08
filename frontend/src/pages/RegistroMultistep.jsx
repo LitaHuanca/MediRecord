@@ -1,1684 +1,1418 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../../supabaseClient'
+import { api } from '../api'
 import { theme } from '../styles/theme'
 
-// Catalogs fallback data for SQA resilience
+/* ─── Fallback catalogs ────────────────────────────────────────────── */
 const SEED_ALERGIAS = [
-  { id: '1', nombre: 'Penicilina', categoria: 'medicamento', descripcion: 'Antibiótico betalactámico' },
-  { id: '2', nombre: 'Amoxicilina', categoria: 'medicamento', descripcion: 'Betalactámico derivado de penicilina' },
-  { id: '3', nombre: 'Ibuprofeno', categoria: 'medicamento', descripcion: 'AINE' },
-  { id: '4', nombre: 'Aspirina', categoria: 'medicamento', descripcion: 'AAS' },
-  { id: '5', nombre: 'Látex', categoria: 'contacto', descripcion: 'Material de guantes quirúrgicos' },
-  { id: '6', nombre: 'Frutos secos', categoria: 'alimento', descripcion: 'Maní, almendras - riesgo anafilaxia' },
-  { id: '7', nombre: 'Mariscos', categoria: 'alimento', descripcion: 'Crustáceos y moluscos' },
-  { id: '8', nombre: 'Polen', categoria: 'ambiental', descripcion: 'Rinitis alérgica' },
-  { id: '9', nombre: 'Picadura de abeja', categoria: 'ambiental', descripcion: 'Riesgo de anafilaxia' },
-  { id: '10', nombre: 'Lactosa', categoria: 'alimento', descripcion: 'Intolerancia (enzimática)' }
+  { id: '1',  nombre: 'Penicilina',        categoria: 'medicamento' },
+  { id: '2',  nombre: 'Amoxicilina',       categoria: 'medicamento' },
+  { id: '3',  nombre: 'Ibuprofeno',        categoria: 'medicamento' },
+  { id: '4',  nombre: 'Aspirina',          categoria: 'medicamento' },
+  { id: '5',  nombre: 'Látex',            categoria: 'contacto'    },
+  { id: '6',  nombre: 'Frutos secos',     categoria: 'alimento'    },
+  { id: '7',  nombre: 'Mariscos',         categoria: 'alimento'    },
+  { id: '8',  nombre: 'Polen',            categoria: 'ambiental'   },
+  { id: '9',  nombre: 'Picadura de abeja', categoria: 'ambiental'  },
+  { id: '10', nombre: 'Lactosa',          categoria: 'alimento'    },
 ]
-
 const SEED_CONDICIONES = [
-  { id: '1', nombre: 'Diabetes tipo 1', categoria: 'endocrina', descripcion: 'Déficit absoluto de insulina' },
-  { id: '2', nombre: 'Diabetes tipo 2', categoria: 'endocrina', descripcion: 'Resistencia a la insulina' },
-  { id: '3', nombre: 'Hipertensión arterial', categoria: 'cardiovascular', descripcion: 'Tensión arterial crónica' },
-  { id: '4', nombre: 'Marcapasos implantado', categoria: 'cardiovascular', descripcion: 'Evitar desfibrilación directa' },
-  { id: '5', nombre: 'Epilepsia', categoria: 'neurologica', descripcion: 'Trastorno convulsivo' },
-  { id: '6', nombre: 'Asma', categoria: 'respiratoria', descripcion: 'Obstrucción bronquial' },
-  { id: '7', nombre: 'Insuficiencia renal crónica', categoria: 'renal', descripcion: 'Ajustar dosis nefrotóxicas' },
-  { id: '8', nombre: 'Hemofilia A', categoria: 'cardiovascular', descripcion: 'Riesgo hemorrágico severo' },
-  { id: '9', nombre: 'Hipotiroidismo', categoria: 'endocrina', descripcion: 'Déficit de hormona tiroidea' }
+  { id: '1', nombre: 'Diabetes tipo 1',            categoria: 'endocrina'      },
+  { id: '2', nombre: 'Diabetes tipo 2',            categoria: 'endocrina'      },
+  { id: '3', nombre: 'Hipertensión arterial',      categoria: 'cardiovascular' },
+  { id: '4', nombre: 'Marcapasos implantado',      categoria: 'cardiovascular' },
+  { id: '5', nombre: 'Epilepsia',                  categoria: 'neurologica'    },
+  { id: '6', nombre: 'Asma',                      categoria: 'respiratoria'   },
+  { id: '7', nombre: 'Insuficiencia renal crónica',categoria: 'renal'          },
+  { id: '8', nombre: 'Hemofilia A',               categoria: 'cardiovascular' },
+  { id: '9', nombre: 'Hipotiroidismo',             categoria: 'endocrina'      },
 ]
 
-const isValidUuid = (value) => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+const isValidUuid = (v) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+
+/* ─── Opciones para selectores ─────────────────────────────────────── */
+const BLOOD_TYPES = [
+  { value:'A+',          label:'A+',   desc:'A Positivo' },
+  { value:'A-',          label:'A-',   desc:'A Negativo' },
+  { value:'B+',          label:'B+',   desc:'B Positivo' },
+  { value:'B-',          label:'B-',   desc:'B Negativo' },
+  { value:'AB+',         label:'AB+',  desc:'AB Positivo' },
+  { value:'AB-',         label:'AB-',  desc:'AB Negativo' },
+  { value:'O+',          label:'O+',   desc:'O Positivo — donante universal de glóbulos' },
+  { value:'O-',          label:'O-',   desc:'O Negativo — donante universal total' },
+  { value:'desconocido', label:'?',    desc:'Desconocido' },
+]
+const SEXOS = [
+  { value:'masculino',         label:'Masculino',         desc:'Sexo biológico masculino' },
+  { value:'femenino',          label:'Femenino',          desc:'Sexo biológico femenino'  },
+  { value:'intersexual',       label:'Intersexual',       desc:'Variación biológica'      },
+  { value:'otro',              label:'Otro',              desc:'Otra condición biológica' },
+  { value:'prefiero_no_decir', label:'Prefiero no decir', desc:''                         },
+]
+const SEVERIDADES = [
+  { value:'leve',       label:'Leve',       desc:'Reacción cutánea o picazón leve'               },
+  { value:'moderada',   label:'Moderada',   desc:'Urticaria extendida, molestia importante'       },
+  { value:'severa',     label:'Severa',     desc:'Broncoespasmo, hinchazón facial'               },
+  { value:'anafilaxia', label:'Anafilaxia', desc:'Peligro de muerte inminente — prioridad máxima' },
+]
+const ESTADOS_COND = [
+  { value:'activa',      label:'Activa',      desc:'Bajo monitoreo médico constante' },
+  { value:'controlada',  label:'Controlada',  desc:'Manejada con fármacos o terapia' },
+  { value:'en_remision', label:'En Remisión', desc:'Sin síntomas activos actualmente' },
+]
+const RELACIONES = [
+  { value:'familiar',        label:'Familiar',         desc:'Padre, madre, hijo/a, hermano/a' },
+  { value:'conyugue',        label:'Cónyuge / Pareja', desc:'Esposo/a o pareja de vida'       },
+  { value:'amigo',           label:'Amigo',            desc:'Persona de plena confianza'      },
+  { value:'medico_personal', label:'Médico Personal',  desc:'Médico de cabecera o tratante'   },
+  { value:'otro',            label:'Otro',             desc:''                                },
+]
+/* Categorías para nuevos items en el catálogo */
+const CAT_ALERGIAS = [
+  { value:'Medicamento', label:'Medicamento', desc:'Fármacos y principios activos' },
+  { value:'Alimento',    label:'Alimento',    desc:'Alimentos y bebidas'           },
+  { value:'Ambiental',   label:'Ambiental',   desc:'Polen, ácaros, hongos, etc.'  },
+  { value:'Material',    label:'Material',    desc:'Látex, metales, plásticos'    },
+  { value:'Otro',        label:'Otro',        desc:''                             },
+]
+const CAT_CONDICIONES = [
+  { value:'Cardiovascular', label:'Cardiovascular', desc:'Corazón y vasos sanguíneos'   },
+  { value:'Metabólica',     label:'Metabólica',     desc:'Diabetes, obesidad, lípidos'  },
+  { value:'Respiratoria',   label:'Respiratoria',   desc:'Asma, EPOC, fibrosis'        },
+  { value:'Neurológica',    label:'Neurológica',    desc:'Epilepsia, ACV, Parkinson'   },
+  { value:'Endocrina',      label:'Endocrina',      desc:'Tiroides, suprarrenales'     },
+  { value:'Autoinmune',     label:'Autoinmune',     desc:'Lupus, AR, psoriasis'        },
+  { value:'Otra',           label:'Otra',           desc:''                            },
+]
+const CAT_MEDICAMENTOS = [
+  { value:'Analgésico',        label:'Analgésico',        desc:'Paracetamol, metamizol'        },
+  { value:'Antibiótico',       label:'Antibiótico',       desc:'Amoxicilina, ciprofloxacino'   },
+  { value:'Antidiabético',     label:'Antidiabético',     desc:'Metformina, insulinas'         },
+  { value:'Antihipertensivo',  label:'Antihipertensivo',  desc:'Losartán, amlodipino'          },
+  { value:'Broncodilatador',   label:'Broncodilatador',   desc:'Salbutamol, formoterol'        },
+  { value:'Hormona tiroidea',  label:'Hormona tiroidea',  desc:'Levotiroxina'                  },
+  { value:'Protector gástrico',label:'Protector gástrico',desc:'Omeprazol, pantoprazol'        },
+  { value:'Estatina',          label:'Estatina',          desc:'Atorvastatina, rosuvastatina'  },
+  { value:'Anticoagulante',    label:'Anticoagulante',    desc:'Warfarina, rivaroxabán'        },
+  { value:'Otro',              label:'Otro',              desc:''                              },
+]
+
+const FRECUENCIAS = [
+  { value:'cada_6h',         label:'Cada 6 horas',    desc:'4 tomas al día'            },
+  { value:'cada_8h',         label:'Cada 8 horas',    desc:'3 tomas al día'            },
+  { value:'cada_12h',        label:'Cada 12 horas',   desc:'2 tomas al día'            },
+  { value:'cada_24h',        label:'Cada 24 horas',   desc:'1 vez al día'              },
+  { value:'segun_necesidad', label:'Según necesidad', desc:'Solo cuando sea requerido' },
+  { value:'personalizado',   label:'Personalizado…',  desc:'Escribir frecuencia propia' },
+]
+
+const STEP_LABELS = ['Datos Vitales', 'Alergias', 'Condiciones', 'Fármacos', 'Contactos']
+const STEP_TITLES = [
+  'Paso 1 · Datos Vitales y Filiación',
+  'Paso 2 · Alergias Medicamentosas y Alimentarias',
+  'Paso 3 · Condiciones Médicas Crónicas',
+  'Paso 4 · Medicamentos de Uso Crónico',
+  'Paso 5 · Contactos de Emergencia',
+]
+
+/* Ícono SVG de cada paso (renderizado dentro del círculo del stepper) */
+const STEP_ICONS = [
+  <svg key="p1" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  <svg key="p2" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  <svg key="p3" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>,
+  <svg key="p4" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>,
+  <svg key="p5" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>,
+]
+
+/* ─── useTypewriter ────────────────────────────────────────────────── */
+function useTypewriter(text, speed = 45) {
+  const [displayed, setDisplayed] = useState('')
+  const [done, setDone]           = useState(false)
+  useEffect(() => {
+    setDisplayed(''); setDone(false)
+    let i = 0
+    const id = setInterval(() => {
+      i++; setDisplayed(text.slice(0, i))
+      if (i >= text.length) { clearInterval(id); setDone(true) }
+    }, speed)
+    return () => clearInterval(id)
+  }, [text, speed])
+  return { displayed, done }
 }
 
-export default function RegistroMultistep() {
-  const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [fetchingData, setFetchingData] = useState(true)
-  const [errorMessage, setErrorMessage] = useState(null)
-  
-  // Database Catalogs
-  const [catalogoAlergias, setCatalogoAlergias] = useState([])
-  const [catalogoCondiciones, setCatalogoCondiciones] = useState([])
-  const [catalogoMedicamentos, setCatalogoMedicamentos] = useState([])
-  
-  // Master IDs
-  const [userId, setUserId] = useState(null)
-  const [perfilId, setPerfilId] = useState(null)
+/* ─── Iconos utilitarios ───────────────────────────────────────────── */
+const Ic = {
+  blood:    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>,
+  gender:   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M12 12v9M9 18h6"/></svg>,
+  calendar: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.textLight} strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  weight:   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.textLight} strokeWidth="2" strokeLinecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
+  height:   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.textLight} strokeWidth="2" strokeLinecap="round"><line x1="12" y1="2" x2="12" y2="22"/><polyline points="17 7 12 2 7 7"/><polyline points="7 17 12 22 17 17"/></svg>,
+  check:    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#10B981" strokeWidth="2.8"><polyline points="20 6 9 17 4 12"/></svg>,
+  error:    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#EF4444" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  alert:    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  noAllergy:<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  noMed:    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 6.5 9c0 3.09 3 6 5.5 8.5L14 20l.5.5"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>,
+  noCond:   <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>,
+  drag:     (
+    <svg viewBox="0 0 10 16" width="10" height="16" fill="#94A3B8">
+      <circle cx="3" cy="2"  r="1.5"/><circle cx="7" cy="2"  r="1.5"/>
+      <circle cx="3" cy="8"  r="1.5"/><circle cx="7" cy="8"  r="1.5"/>
+      <circle cx="3" cy="14" r="1.5"/><circle cx="7" cy="14" r="1.5"/>
+    </svg>
+  ),
+  clock:    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  person:   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  relation: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  search:   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  severity: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>,
+  clockSm:  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+}
 
-  // STEP 1: Datos Generales state
-  const [generalData, setGeneralData] = useState({
-    nombreCompleto: '',
-    dni: '',
-    telefono: '',
-    tipoSangre: 'desconocido',
-    sexo: 'prefiero_no_decir',
-    fechaNacimiento: '',
-    donanteOrganos: false,
-    pesoKg: '',
-    alturaCm: '',
-    notasAdicionales: ''
-  })
-
-  // STEP 2: Alergias state
-  const [userAlergias, setUserAlergias] = useState([])
-  const [selectedAlergiaId, setSelectedAlergiaId] = useState('')
-  const [alergiaSeveridad, setAlergiaSeveridad] = useState('leve')
-  const [alergiaReaccion, setAlergiaReaccion] = useState('')
-
-  // STEP 3: Condiciones state
-  const [userCondiciones, setUserCondiciones] = useState([])
-  const [selectedCondicionId, setSelectedCondicionId] = useState('')
-  const [condicionEstado, setCondicionEstado] = useState('activa')
-  const [condicionTratamiento, setCondicionTratamiento] = useState('')
-
-  // STEP 4: Medicamentos state
-  const [userMedicamentos, setUserMedicamentos] = useState([])
-  const [medNombre, setMedNombre] = useState('')
-  const [medDosis, setMedDosis] = useState('')
-  const [medFrecuencia, setMedFrecuencia] = useState('')
-  const [medNotas, setMedNotas] = useState('')
-
-  // STEP 5: Contactos state
-  const [userContactos, setUserContactos] = useState([
-    { nombre: '', telefono: '', relacion: 'familiar', ordenPrioridad: 1 },
-    { nombre: '', telefono: '', relacion: 'familiar', ordenPrioridad: 2 }
-  ])
-
-  // Load catalogs and existing user profile on mount
+/* ─── CustomSelect ─────────────────────────────────────────────────── */
+function CustomSelect({ options, value, onChange, disabled, icon, placeholder }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
   useEffect(() => {
-    async function loadData() {
-      try {
-        setFetchingData(true)
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          navigate('/login')
-          return
-        }
-
-        // Fetch Catalogs
-        const { data: dbAlergias, error: alergiasError } = await supabase
-          .from('alergias')
-          .select('*')
-          .order('nombre')
-        if (alergiasError) throw new Error(`No se pudo cargar el catálogo de alergias: ${alergiasError.message}`)
-        setCatalogoAlergias(dbAlergias || [])
-
-        const { data: dbCondiciones, error: condicionesError } = await supabase
-          .from('condiciones_cronicas')
-          .select('*')
-          .order('nombre')
-        if (condicionesError) throw new Error(`No se pudo cargar el catálogo de condiciones: ${condicionesError.message}`)
-        setCatalogoCondiciones(dbCondiciones || [])
-
-        const { data: dbMedicamentos, error: medicamentosError } = await supabase
-          .from('medicamentos')
-          .select('*')
-          .order('nombre_generico')
-        if (medicamentosError) throw new Error(`No se pudo cargar el catálogo de medicamentos: ${medicamentosError.message}`)
-        setCatalogoMedicamentos(dbMedicamentos || [])
-
-        // Fetch user from public.usuarios
-        const { data: dbUsuario, error: userError } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .maybeSingle()
-
-        if (userError) throw userError
-
-        let activeUsuario = dbUsuario
-
-        if (!activeUsuario) {
-          const { data: createdUsuario, error: createUserError } = await supabase
-            .from('usuarios')
-            .insert([{
-              auth_user_id: user.id,
-              email: user.email,
-              nombre_completo: user.user_metadata?.nombre_completo || 'Usuario MediRecord',
-              dni: user.user_metadata?.dni || null,
-              activo: true
-            }])
-            .select('*')
-            .single()
-
-          if (createUserError) throw createUserError
-          activeUsuario = createdUsuario
-        }
-
-        if (activeUsuario) {
-          setUserId(activeUsuario.id)
-          
-          // Pre-populate Step 1 from usuarios
-          setGeneralData(prev => ({
-            ...prev,
-            nombreCompleto: activeUsuario.nombre_completo || '',
-            dni: activeUsuario.dni || '',
-            telefono: activeUsuario.telefono || ''
-          }))
-
-          // Fetch perfiles_medicos
-          const { data: dbPerfil } = await supabase
-            .from('perfiles_medicos')
-            .select('*')
-            .eq('usuario_id', activeUsuario.id)
-            .maybeSingle()
-
-          if (dbPerfil) {
-            setPerfilId(dbPerfil.id)
-            setGeneralData(prev => ({
-              ...prev,
-              tipoSangre: dbPerfil.tipo_sangre || 'desconocido',
-              sexo: dbPerfil.sexo || 'prefiero_no_decir',
-              fechaNacimiento: dbPerfil.fecha_nacimiento || '',
-              donanteOrganos: dbPerfil.donante_organos || false,
-              pesoKg: dbPerfil.peso_kg || '',
-              alturaCm: dbPerfil.altura_cm || '',
-              notasAdicionales: dbPerfil.notas_adicionales || ''
-            }))
-
-            // Fetch existing Alergias
-            const { data: dbUserAlergias } = await supabase
-              .from('perfil_alergias')
-              .select('alergia_id, severidad, reaccion_observada')
-              .eq('perfil_id', dbPerfil.id)
-            
-            if (dbUserAlergias) {
-              setUserAlergias(dbUserAlergias.map(item => ({
-                alergiaId: item.alergia_id,
-                severidad: item.severidad,
-                reaccion: item.reaccion_observada
-              })))
-            }
-
-            // Fetch existing Condiciones
-            const { data: dbUserCondiciones } = await supabase
-              .from('perfil_condiciones')
-              .select('condicion_id, estado, tratamiento_actual')
-              .eq('perfil_id', dbPerfil.id)
-
-            if (dbUserCondiciones) {
-              setUserCondiciones(dbUserCondiciones.map(item => ({
-                condicionId: item.condicion_id,
-                estado: item.estado,
-                tratamiento: item.treatment_actual || item.tratamiento_actual
-              })))
-            }
-
-            // Fetch existing Medicamentos
-            const { data: dbUserMedicamentos } = await supabase
-              .from('perfil_medicamentos')
-              .select('medicamento_id, dosis, frecuencia, notas, medicamentos(nombre_generico)')
-              .eq('perfil_id', dbPerfil.id)
-
-            if (dbUserMedicamentos) {
-              setUserMedicamentos(dbUserMedicamentos.map(item => ({
-                nombre: item.medicamentos?.nombre_generico || 'Medicamento',
-                dosis: item.dosis,
-                frecuencia: item.frecuencia,
-                notas: item.notas
-              })))
-            }
-          }
-
-          // Fetch existing Contactos de Emergencia
-          const { data: dbUserContactos } = await supabase
-            .from('contactos_emergencia')
-            .select('*')
-            .eq('usuario_id', activeUsuario.id)
-            .order('orden_prioridad')
-
-          if (dbUserContactos && dbUserContactos.length > 0) {
-            setUserContactos(dbUserContactos.map(item => ({
-              nombre: item.nombre,
-              telefono: item.telefono,
-              relacion: item.relacion,
-              ordenPrioridad: item.orden_prioridad
-            })))
-          }
-        }
-      } catch (err) {
-        setErrorMessage(err.message || 'Error al precargar sus datos clínicos.')
-      } finally {
-        setFetchingData(false)
-      }
-    }
-
-    loadData()
-  }, [navigate])
-
-  const handleStep1Submit = (e) => {
-    e.preventDefault()
-    
-    // Validations
-    if (!/^\d{8}$/.test(generalData.dni)) {
-      setErrorMessage('El DNI debe contener exactamente 8 dígitos.')
-      return
-    }
-
-    if (generalData.fechaNacimiento && new Date(generalData.fechaNacimiento) >= new Date()) {
-      setErrorMessage('La fecha de nacimiento debe ser anterior al día de hoy.')
-      return
-    }
-
-    if (generalData.pesoKg && (generalData.pesoKg <= 0 || generalData.pesoKg >= 500)) {
-      setErrorMessage('Por favor ingrese un peso válido (0 a 500 kg).')
-      return
-    }
-
-    if (generalData.alturaCm && (generalData.alturaCm <= 0 || generalData.alturaCm >= 300)) {
-      setErrorMessage('Por favor ingrese una altura válida (0 a 300 cm).')
-      return
-    }
-
-    setErrorMessage(null)
-    setCurrentStep(2)
-  }
-
-  // ALERGIAS MANAGERS
-  const handleAddAlergia = () => {
-    if (!selectedAlergiaId) return
-    if (!isValidUuid(selectedAlergiaId)) {
-      setErrorMessage('No se pudo usar esta alergia porque el catálogo real de Supabase no cargó. Revise permisos de lectura en la tabla alergias.')
-      return
-    }
-    if (userAlergias.some(a => a.alergiaId === selectedAlergiaId)) {
-      setErrorMessage('Esta alergia ya ha sido agregada a la lista.')
-      return
-    }
-    setUserAlergias([...userAlergias, {
-      alergiaId: selectedAlergiaId,
-      severidad: alergiaSeveridad,
-      reaccion: alergiaReaccion
-    }])
-    setSelectedAlergiaId('')
-    setAlergiaSeveridad('leve')
-    setAlergiaReaccion('')
-    setErrorMessage(null)
-  }
-
-  const handleRemoveAlergia = (id) => {
-    setUserAlergias(userAlergias.filter(a => a.alergiaId !== id))
-  }
-
-  // CONDICIONES MANAGERS
-  const handleAddCondicion = () => {
-    if (!selectedCondicionId) return
-    if (!isValidUuid(selectedCondicionId)) {
-      setErrorMessage('No se pudo usar esta condición porque el catálogo real de Supabase no cargó. Revise permisos de lectura en la tabla condiciones_cronicas.')
-      return
-    }
-    if (userCondiciones.some(c => c.condicionId === selectedCondicionId)) {
-      setErrorMessage('Esta condición ya ha sido agregada a la lista.')
-      return
-    }
-    setUserCondiciones([...userCondiciones, {
-      condicionId: selectedCondicionId,
-      estado: condicionEstado,
-      tratamiento: condicionTratamiento
-    }])
-    setSelectedCondicionId('')
-    setCondicionEstado('activa')
-    setCondicionTratamiento('')
-    setErrorMessage(null)
-  }
-
-  const handleRemoveCondicion = (id) => {
-    setUserCondiciones(userCondiciones.filter(c => c.condicionId !== id))
-  }
-
-  // MEDICAMENTOS MANAGERS
-  const handleAddMedicamento = () => {
-    if (!medNombre.trim()) return
-    const catalogMed = catalogoMedicamentos.find(m => 
-      m.nombre_generico.toLowerCase() === medNombre.trim().toLowerCase() ||
-      m.nombre_comercial?.toLowerCase() === medNombre.trim().toLowerCase()
-    )
-    setUserMedicamentos([...userMedicamentos, {
-      nombre: catalogMed?.nombre_generico || medNombre.trim(),
-      nombreComercial: catalogMed?.nombre_comercial || '',
-      categoria: catalogMed?.categoria || '',
-      dosis: medDosis.trim() || 'No especificada',
-      frecuencia: medFrecuencia.trim() || 'No especificada',
-      notas: medNotas.trim()
-    }])
-    setMedNombre('')
-    setMedDosis('')
-    setMedFrecuencia('')
-    setMedNotas('')
-  }
-
-  const handleRemoveMedicamento = (index) => {
-    setUserMedicamentos(userMedicamentos.filter((_, i) => i !== index))
-  }
-
-  // CONTACTOS MANAGERS
-  const handleContactoChange = (index, field, value) => {
-    const next = [...userContactos]
-    next[index][field] = value
-    setUserContactos(next)
-  }
-
-  const handleAddContacto = () => {
-    if (userContactos.length >= 5) return
-    setUserContactos([...userContactos, {
-      nombre: '',
-      telefono: '',
-      relacion: 'familiar',
-      ordenPrioridad: userContactos.length + 1
-    }])
-  }
-
-  const handleRemoveContacto = (index) => {
-    if (userContactos.length <= 1) return
-    const filtered = userContactos.filter((_, i) => i !== index)
-    // Re-adjust priorities
-    const updated = filtered.map((c, i) => ({ ...c, ordenPrioridad: i + 1 }))
-    setUserContactos(updated)
-  }
-
-  // SUBMIT COMPLETE FORM TO SUPABASE
-  const handleFinalSubmit = async () => {
-    setLoading(true)
-    setErrorMessage(null)
-
-    try {
-      let activeUserId = userId
-
-      if (!activeUserId) {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          navigate('/login')
-          return
-        }
-
-        const { data: existingUsuario, error: existingUsuarioError } = await supabase
-          .from('usuarios')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .maybeSingle()
-
-        if (existingUsuarioError) throw existingUsuarioError
-
-        if (existingUsuario) {
-          activeUserId = existingUsuario.id
-        } else {
-          const { data: createdUsuario, error: createUsuarioError } = await supabase
-            .from('usuarios')
-            .insert([{
-              auth_user_id: user.id,
-              email: user.email,
-              nombre_completo: generalData.nombreCompleto.trim(),
-              dni: generalData.dni,
-              telefono: generalData.telefono || null,
-              activo: true
-            }])
-            .select('id')
-            .single()
-
-          if (createUsuarioError) throw createUsuarioError
-          activeUserId = createdUsuario.id
-        }
-
-        setUserId(activeUserId)
-      }
-
-      // 1. Update public.usuarios table
-      const { error: userUpdateError } = await supabase
-        .from('usuarios')
-        .update({
-          nombre_completo: generalData.nombreCompleto.trim(),
-          dni: generalData.dni,
-          telefono: generalData.telefono
-        })
-        .eq('id', activeUserId)
-
-      if (userUpdateError) throw userUpdateError
-
-      // 2. Insert or Update perfiles_medicos
-      let activePerfilId = perfilId
-      if (!activePerfilId) {
-        // Insert new profile
-        const { data: newProfile, error: profileInsertError } = await supabase
-          .from('perfiles_medicos')
-          .insert([{
-            usuario_id: activeUserId,
-            tipo_sangre: generalData.tipoSangre,
-            sexo: generalData.sexo,
-            fecha_nacimiento: generalData.fechaNacimiento || null,
-            donante_organos: generalData.donanteOrganos,
-            peso_kg: generalData.pesoKg ? parseFloat(generalData.pesoKg) : null,
-            altura_cm: generalData.alturaCm ? parseInt(generalData.alturaCm) : null,
-            notas_adicionales: generalData.notasAdicionales.trim() || null
-          }])
-          .select('id')
-          .single()
-
-        if (profileInsertError) throw profileInsertError
-        activePerfilId = newProfile.id
-      } else {
-        // Update existing profile
-        const { error: profileUpdateError } = await supabase
-          .from('perfiles_medicos')
-          .update({
-            tipo_sangre: generalData.tipoSangre,
-            sexo: generalData.sexo,
-            fecha_nacimiento: generalData.fechaNacimiento || null,
-            donante_organos: generalData.donanteOrganos,
-            peso_kg: generalData.pesoKg ? parseFloat(generalData.pesoKg) : null,
-            altura_cm: generalData.alturaCm ? parseInt(generalData.alturaCm) : null,
-            notas_adicionales: generalData.notasAdicionales.trim() || null
-          })
-          .eq('id', activePerfilId)
-
-        if (profileUpdateError) throw profileUpdateError
-      }
-
-      // 3. Save Alergias (delete existing and insert new ones - clean slate)
-      const { error: clearAlergiasError } = await supabase
-        .from('perfil_alergias')
-        .delete()
-        .eq('perfil_id', activePerfilId)
-
-      if (clearAlergiasError) throw clearAlergiasError
-
-      if (userAlergias.length > 0) {
-        const { error: insertAlergiasError } = await supabase
-          .from('perfil_alergias')
-          .insert(
-            userAlergias.map(item => ({
-              perfil_id: activePerfilId,
-              alergia_id: item.alergiaId,
-              severidad: item.severidad,
-              reaccion_observada: item.reaccion || null
-            }))
-          )
-        if (insertAlergiasError) throw insertAlergiasError
-      }
-
-      // 4. Save Condiciones (delete and insert)
-      const { error: clearCondicionesError } = await supabase
-        .from('perfil_condiciones')
-        .delete()
-        .eq('perfil_id', activePerfilId)
-
-      if (clearCondicionesError) throw clearCondicionesError
-
-      if (userCondiciones.length > 0) {
-        const { error: insertCondicionesError } = await supabase
-          .from('perfil_condiciones')
-          .insert(
-            userCondiciones.map(item => ({
-              perfil_id: activePerfilId,
-              condicion_id: item.condicionId,
-              estado: item.estado,
-              tratamiento_actual: item.tratamiento || null
-            }))
-          )
-        if (insertCondicionesError) throw insertCondicionesError
-      }
-
-      // 5. Save Medicamentos
-      // Delete existing associations
-      const { error: clearMedsError } = await supabase
-        .from('perfil_medicamentos')
-        .delete()
-        .eq('perfil_id', activePerfilId)
-
-      if (clearMedsError) throw clearMedsError
-
-      for (const med of userMedicamentos) {
-        // Search if medicamento exists in standard table
-        let medId
-        const { data: existingMed } = await supabase
-          .from('medicamentos')
-          .select('id')
-          .ilike('nombre_generico', med.nombre)
-          .maybeSingle()
-
-        if (existingMed) {
-          medId = existingMed.id
-        } else {
-          // Create a new master catalog entry dynamically
-          const { data: newMed, error: newMedError } = await supabase
-            .from('medicamentos')
-            .insert([{ nombre_generico: med.nombre }])
-            .select('id')
-            .single()
-          
-          if (newMedError) throw newMedError
-          medId = newMed.id
-        }
-
-        // Insert relational row
-        const { error: medRelationError } = await supabase
-          .from('perfil_medicamentos')
-          .insert([{
-            perfil_id: activePerfilId,
-            medicamento_id: medId,
-            dosis: med.dosis,
-            frecuencia: med.frecuencia,
-            notas: med.notas || null
-          }])
-
-        if (medRelationError) throw medRelationError
-      }
-
-      // 6. Save Contactos de Emergencia (delete and insert)
-      const { error: clearContactosError } = await supabase
-        .from('contactos_emergencia')
-        .delete()
-        .eq('usuario_id', activeUserId)
-
-      if (clearContactosError) throw clearContactosError
-
-      const validContactos = userContactos.filter(c => c.nombre.trim() && c.telefono.trim())
-      if (validContactos.length > 0) {
-        const { error: insertContactosError } = await supabase
-          .from('contactos_emergencia')
-          .insert(
-            validContactos.map(item => ({
-              usuario_id: activeUserId,
-              nombre: item.nombre.trim(),
-              telefono: item.telefono.trim(),
-              relacion: item.relacion,
-              orden_prioridad: item.ordenPrioridad
-            }))
-          )
-        if (insertContactosError) throw insertContactosError
-      }
-
-      // 7. Verify QR token exists, if not generate one!
-      const { data: existingToken } = await supabase
-        .from('tokens_qr')
-        .select('id')
-        .eq('usuario_id', activeUserId)
-        .eq('estado', 'activo')
-        .maybeSingle()
-
-      if (!existingToken) {
-        const { error: tokenError } = await supabase
-          .from('tokens_qr')
-          .insert([{
-            usuario_id: activeUserId,
-            estado: 'activo'
-          }])
-        if (tokenError) throw tokenError
-      }
-
-      // Successful completion! Redirect to dashboard
-      navigate('/dashboard')
-
-    } catch (err) {
-      setErrorMessage(err.message || 'Error al guardar los datos clínicos en el servidor.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (fetchingData) {
-    return (
-      <div style={spinnerContainerStyle}>
-        <div style={spinnerStyle}></div>
-        <p style={{ color: theme.colors.textMedium, marginTop: '16px', fontWeight: '500' }}>Cargando expediente clínico...</p>
-      </div>
-    )
-  }
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const NONE = ['desconocido', 'prefiero_no_decir', '']
+  const isValid  = value && !NONE.includes(value)
+  const selected = options.find(o => o.value === value)
 
   return (
-    <div style={containerStyle} className="animate-fade-in">
-      <div style={wizardHeaderStyle}>
-        <h1 style={titleStyle}>Ficha Vital de Emergencia</h1>
-        <p style={subtitleStyle}>Complete todos los campos para generar el QR vital de la Hora Dorada</p>
-        
-        {/* STEPPER BAR */}
-        <div style={stepperContainerStyle}>
-          {[1, 2, 3, 4, 5].map(step => (
-            <div key={step} style={stepWrapperStyle}>
-              <div style={
-                step === currentStep ? activeStepIconStyle :
-                step < currentStep ? completedStepIconStyle :
-                pendingStepIconStyle
-              }>
-                {step < currentStep ? '✓' : step}
+    <div ref={ref} style={{ position:'relative' }}>
+      <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)} style={cssBtnStyle(open, isValid)}>
+        {icon && <span style={{ color:theme.colors.primary, display:'flex', flexShrink:0 }}>{icon}</span>}
+        <span style={{ flex:1, textAlign:'left', fontSize:'13.5px',
+          color:selected?theme.colors.textDark:theme.colors.textLight,
+          fontWeight:selected?'500':'400' }}>
+          {selected ? selected.label : (placeholder || '— Seleccionar —')}
+        </span>
+        {selected?.desc && (
+          <span style={{ fontSize:'11px', color:theme.colors.textLight, marginRight:'4px',
+            maxWidth:'140px', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
+            {selected.desc}
+          </span>
+        )}
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke={theme.colors.textLight} strokeWidth="2.5"
+          style={{ transform:open?'rotate(180deg)':'rotate(0)', transition:'transform 0.18s ease', flexShrink:0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={dropStyle}>
+          {options.map(opt => (
+            <button key={opt.value} type="button"
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              style={optStyle(opt.value === value)}
+              onMouseEnter={e => { if (opt.value!==value) e.currentTarget.style.backgroundColor=theme.colors.primaryLight }}
+              onMouseLeave={e => { if (opt.value!==value) e.currentTarget.style.backgroundColor='transparent' }}>
+              <div style={{ flex:1, textAlign:'left' }}>
+                <div style={{ fontSize:'13px', fontWeight:'600', color:opt.value===value?theme.colors.primary:theme.colors.textDark }}>{opt.label}</div>
+                {opt.desc && <div style={{ fontSize:'11px', color:theme.colors.textLight }}>{opt.desc}</div>}
               </div>
-              <span style={step === currentStep ? activeStepLabelStyle : stepLabelStyle}>
-                {step === 1 ? 'Generales' :
-                 step === 2 ? 'Alergias' :
-                 step === 3 ? 'Condiciones' :
-                 step === 4 ? 'Fármacos' :
-                 'Contactos'}
-              </span>
-            </div>
+              {opt.value===value && <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke={theme.colors.primary} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+            </button>
           ))}
-          <div style={progressBarBgStyle}>
-            <div style={{ ...progressBarFillStyle, width: `${(currentStep - 1) * 25}%` }}></div>
-          </div>
-        </div>
-      </div>
-
-      {errorMessage && (
-        <div style={errorContainerStyle}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <span>{errorMessage}</span>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* STEP CARD */}
-      <div style={cardStyle}>
-        {currentStep === 1 && (
-          <form onSubmit={handleStep1Submit} style={formGridStyle}>
-            <h3 style={stepTitleStyle}>Paso 1: Datos Vitales y Filiación</h3>
-            
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Nombre Completo</label>
-              <input
-                type="text"
-                required
-                value={generalData.nombreCompleto}
-                onChange={(e) => setGeneralData({ ...generalData, nombreCompleto: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
+/* ─── CatalogSelect: búsqueda con filtro para catálogos grandes ────── */
+function CatalogSelect({ items, value, onChange, placeholder, onRequestAdd, labelKey='nombre', subtitleKey='categoria' }) {
+  const [open, setOpen]     = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef(null)
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
+  }, [])
 
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>DNI (8 dígitos)</label>
-              <input
-                type="text"
-                maxLength="8"
-                required
-                value={generalData.dni}
-                onChange={(e) => setGeneralData({ ...generalData, dni: e.target.value.replace(/\D/g, '') })}
-                style={inputStyle}
-              />
-            </div>
+  const filtered = items.filter(item =>
+    item[labelKey]?.toLowerCase().includes(search.toLowerCase()) ||
+    item[subtitleKey]?.toLowerCase().includes(search.toLowerCase())
+  )
+  const selected = items.find(i => i.id === value)
+  const showAddBtn = search.trim().length > 0 && filtered.length === 0 && !!onRequestAdd
 
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Teléfono de Contacto</label>
-              <input
-                type="tel"
-                placeholder="+51999888777"
-                value={generalData.telefono || ''}
-                onChange={(e) => setGeneralData({ ...generalData, telefono: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Tipo de Sangre</label>
-              <select
-                value={generalData.tipoSangre}
-                onChange={(e) => setGeneralData({ ...generalData, tipoSangre: e.target.value })}
-                style={selectStyle}
-              >
-                <option value="A+">A Positivo (A+)</option>
-                <option value="A-">A Negativo (A-)</option>
-                <option value="B+">B Positivo (B+)</option>
-                <option value="B-">B Negativo (B-)</option>
-                <option value="AB+">AB Positivo (AB+)</option>
-                <option value="AB-">AB Negativo (AB-)</option>
-                <option value="O+">O Positivo (O+)</option>
-                <option value="O-">O Negativo (O-)</option>
-                <option value="desconocido">Desconocido</option>
-              </select>
-            </div>
-
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Sexo Biológico</label>
-              <select
-                value={generalData.sexo}
-                onChange={(e) => setGeneralData({ ...generalData, sexo: e.target.value })}
-                style={selectStyle}
-              >
-                <option value="masculino">Masculino</option>
-                <option value="femenino">Femenino</option>
-                <option value="otro">Otro</option>
-                <option value="prefiero_no_decir">Prefiero no decirlo</option>
-              </select>
-            </div>
-
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Fecha de Nacimiento</label>
-              <input
-                type="date"
-                required
-                value={generalData.fechaNacimiento}
-                onChange={(e) => setGeneralData({ ...generalData, fechaNacimiento: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Peso (Kg)</label>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="72.5"
-                value={generalData.pesoKg}
-                onChange={(e) => setGeneralData({ ...generalData, pesoKg: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>Altura (cm)</label>
-              <input
-                type="number"
-                placeholder="175"
-                value={generalData.alturaCm}
-                onChange={(e) => setGeneralData({ ...generalData, alturaCm: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={{ ...inputGroupStyle, gridColumn: 'span 2' }}>
-              <div style={checkboxWrapperStyle}>
-                <input
-                  type="checkbox"
-                  id="donante"
-                  checked={generalData.donanteOrganos}
-                  onChange={(e) => setGeneralData({ ...generalData, donanteOrganos: e.target.checked })}
-                  style={checkboxStyle}
-                />
-                <label htmlFor="donante" style={{ ...labelStyle, cursor: 'pointer', margin: 0 }}>
-                  Soy Donante de Órganos y Tejidos
-                </label>
-              </div>
-            </div>
-
-            <div style={{ ...inputGroupStyle, gridColumn: 'span 2' }}>
-              <label style={labelStyle}>Notas Clínicas Críticas (Marcapasos, prótesis, instrucciones especiales)</label>
-              <textarea
-                placeholder="Ej. Marcapasos implantado en ventrículo izquierdo (2024). Alérgico severo al contraste de tomografías."
-                maxLength="2000"
-                value={generalData.notesAdicionales || generalData.notasAdicionales}
-                onChange={(e) => setGeneralData({ ...generalData, notasAdicionales: e.target.value })}
-                style={textareaStyle}
-              />
-            </div>
-
-            <div style={{ ...buttonRowStyle, gridColumn: 'span 2' }}>
-              <span style={{ flex: 1 }}></span>
-              <button type="submit" style={buttonPrimaryStyle}>
-                Continuar a Alergias &rarr;
-              </button>
-            </div>
-          </form>
+  return (
+    <div ref={ref} style={{ position:'relative' }}>
+      <button type="button" onClick={() => { setOpen(o => !o); setSearch('') }}
+        style={cssBtnStyle(open, !!selected)}>
+        <span style={{ color:theme.colors.primary, display:'flex', flexShrink:0 }}>{Ic.search}</span>
+        <span style={{ flex:1, textAlign:'left', fontSize:'13.5px',
+          color:selected?theme.colors.textDark:theme.colors.textLight,
+          fontWeight:selected?'500':'400' }}>
+          {selected ? selected[labelKey] : (placeholder || '— Buscar del catálogo —')}
+        </span>
+        {selected && selected[subtitleKey] && (
+          <span style={{ fontSize:'10px', fontWeight:'700', color:'#0369A1',
+            backgroundColor:'#E0F2FE', border:'1px solid #BAE6FD',
+            borderRadius:'4px', padding:'1px 6px', textTransform:'uppercase', flexShrink:0 }}>
+            {selected[subtitleKey]}
+          </span>
         )}
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke={theme.colors.textLight} strokeWidth="2.5"
+          style={{ transform:open?'rotate(180deg)':'rotate(0)', transition:'transform 0.18s ease', flexShrink:0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
 
-        {currentStep === 2 && (
-          <div style={formFlexStyle}>
-            <h3 style={stepTitleStyle}>Paso 2: Alergias Medicamentosas y Alimentarias</h3>
-            
-            <div style={builderBoxStyle}>
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Buscar / Seleccionar Alergia</label>
-                <select
-                  value={selectedAlergiaId}
-                  onChange={(e) => setSelectedAlergiaId(e.target.value)}
-                  style={selectStyle}
-                  disabled={catalogoAlergias.length === 0}
-                >
-                  <option value="">{catalogoAlergias.length === 0 ? '-- Catálogo vacío o no disponible --' : '-- Seleccionar de catálogo --'}</option>
-                  {catalogoAlergias.map(a => (
-                    <option key={a.id} value={a.id}>{a.nombre} ({a.categoria})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Severidad Clínica</label>
-                <select
-                  value={alergiaSeveridad}
-                  onChange={(e) => setAlergiaSeveridad(e.target.value)}
-                  style={selectStyle}
-                >
-                  <option value="leve">Leve (reacción cutánea o picazón)</option>
-                  <option value="moderada">Moderada (urticaria extendida)</option>
-                  <option value="severa">Severa (broncoespasmo, hinchazón facial)</option>
-                  <option value="anafilaxia">Anafilaxia (Peligro de muerte inminente)</option>
-                </select>
-              </div>
-
-              <div style={{ ...inputGroupStyle, gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Reacción Clínica Observada</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Urticaria severa, shock anafiláctico con cianosis"
-                  value={alergiaReaccion}
-                  onChange={(e) => setAlergiaReaccion(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-
-              <button type="button" onClick={handleAddAlergia} style={addButtonStyle}>
-                + Agregar Alergia
-              </button>
-            </div>
-
-            <h4 style={listTitleStyle}>Alergias Registradas ({userAlergias.length})</h4>
-            {userAlergias.length === 0 ? (
-              <p style={emptyStateStyle}>No ha registrado ninguna alergia clínicamente relevante.</p>
-            ) : (
-              <div style={gridListStyle}>
-                {userAlergias.map((item, index) => {
-                  const data = catalogoAlergias.find(a => a.id === item.alergiaId) || { nombre: 'Alergia', categoria: 'otra' }
-                  return (
-                    <div key={index} style={badgeStyle(item.severidad)}>
-                      <div>
-                        <strong style={badgeTitleStyle}>{data.nombre}</strong>
-                        <span style={badgeCatStyle}>{data.categoria}</span>
-                        {item.reaccion && <p style={badgeSubStyle}>Reacción: {item.reaccion}</p>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={badgeSeverityStyle(item.severidad)}>{item.severidad.toUpperCase()}</span>
-                        <button type="button" onClick={() => handleRemoveAlergia(item.alergiaId)} style={removeBadgeStyle}>×</button>
-                      </div>
-                    </div>
-                  )
-                })}
+      {open && (
+        <div style={{ ...dropStyle, maxHeight:'260px', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'8px 8px 4px' }}>
+            <input autoFocus type="text" placeholder="Buscar por nombre o categoría…"
+              value={search} onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              style={{ ...baseInput, fontSize:'12.5px', padding:'7px 10px' }}
+              className="rms-input"/>
+          </div>
+          <div style={{ overflowY:'auto', flex:1 }}>
+            {filtered.length === 0 && !showAddBtn && (
+              <div style={{ padding:'14px', textAlign:'center', fontSize:'12.5px', color:theme.colors.textLight }}>
+                {search ? `Sin resultados para "${search}"` : 'Escribe para buscar…'}
               </div>
             )}
-
-            <div style={buttonRowStyle}>
-              <button type="button" onClick={() => setCurrentStep(1)} style={buttonSecondaryStyle}>
-                &larr; Volver
-              </button>
-              <button type="button" onClick={() => setCurrentStep(3)} style={buttonPrimaryStyle}>
-                Continuar a Condiciones &rarr;
-              </button>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 3 && (
-          <div style={formFlexStyle}>
-            <h3 style={stepTitleStyle}>Paso 3: Condiciones Médicas Crónicas</h3>
-            
-            <div style={builderBoxStyle}>
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Seleccionar Condición Crónica</label>
-                <select
-                  value={selectedCondicionId}
-                  onChange={(e) => setSelectedCondicionId(e.target.value)}
-                  style={selectStyle}
-                  disabled={catalogoCondiciones.length === 0}
-                >
-                  <option value="">{catalogoCondiciones.length === 0 ? '-- Catálogo vacío o no disponible --' : '-- Seleccionar de catálogo --'}</option>
-                  {catalogoCondiciones.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre} ({c.categoria})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Estado Clínico Actual</label>
-                <select
-                  value={condicionEstado}
-                  onChange={(e) => setCondicionEstado(e.target.value)}
-                  style={selectStyle}
-                >
-                  <option value="activa">Activa (bajo monitoreo)</option>
-                  <option value="controlada">Controlada (con fármacos)</option>
-                  <option value="en_remision">En Remisión</option>
-                </select>
-              </div>
-
-              <div style={{ ...inputGroupStyle, gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Tratamiento / Protocolo Vigente</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Losartán 50mg cada 12 horas, Dieta hiposódica"
-                  value={condicionTratamiento}
-                  onChange={(e) => setCondicionTratamiento(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-
-              <button type="button" onClick={handleAddCondicion} style={addButtonStyle}>
-                + Agregar Condición
-              </button>
-            </div>
-
-            <h4 style={listTitleStyle}>Condiciones Registradas ({userCondiciones.length})</h4>
-            {userCondiciones.length === 0 ? (
-              <p style={emptyStateStyle}>Ninguna patología o condición crónica registrada.</p>
-            ) : (
-              <div style={gridListStyle}>
-                {userCondiciones.map((item, index) => {
-                  const data = catalogoCondiciones.find(c => c.id === item.condicionId) || { nombre: 'Condición', categoria: 'otra' }
-                  return (
-                    <div key={index} style={conditionCardStyle}>
-                      <div>
-                        <strong style={badgeTitleStyle}>{data.nombre}</strong>
-                        <span style={badgeCatStyle}>{data.categoria}</span>
-                        {item.tratamiento && <p style={badgeSubStyle}>Tratamiento: {item.tratamiento}</p>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={statusBadgeStyle(item.estado)}>{item.estado.replace('_', ' ').toUpperCase()}</span>
-                        <button type="button" onClick={() => handleRemoveCondicion(item.condicionId)} style={removeBadgeStyle}>×</button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            <div style={buttonRowStyle}>
-              <button type="button" onClick={() => setCurrentStep(2)} style={buttonSecondaryStyle}>
-                &larr; Volver
-              </button>
-              <button type="button" onClick={() => setCurrentStep(4)} style={buttonPrimaryStyle}>
-                Continuar a Fármacos &rarr;
-              </button>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 4 && (
-          <div style={formFlexStyle}>
-            <h3 style={stepTitleStyle}>Paso 4: Medicamentos de Uso Crónico</h3>
-            
-            <div style={builderBoxStyle}>
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Nombre del Medicamento (Genérico / Comercial)</label>
-                <input
-                  type="text"
-                  list="medicamentos-catalogo"
-                  placeholder="Ej. Metformina, Insulina Glargina, Clonazepam"
-                  value={medNombre}
-                  onChange={(e) => setMedNombre(e.target.value)}
-                  style={inputStyle}
-                />
-                <datalist id="medicamentos-catalogo">
-                  {catalogoMedicamentos.map(m => (
-                    <option
-                      key={m.id}
-                      value={m.nombre_generico}
-                      label={m.nombre_comercial ? `${m.nombre_comercial} - ${m.categoria || 'Sin categoría'}` : m.categoria}
-                    />
-                  ))}
-                </datalist>
-              </div>
-
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Dosis</label>
-                <input
-                  type="text"
-                  placeholder="Ej. 850 mg, 10 UI, 0.5 mg"
-                  value={medDosis}
-                  onChange={(e) => setMedDosis(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Frecuencia</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Cada 12 horas con alimentos, en las noches"
-                  value={medFrecuencia}
-                  onChange={(e) => setMedFrecuencia(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={inputGroupStyle}>
-                <label style={labelStyle}>Observaciones / Notas adicionales</label>
-                <input
-                  type="text"
-                  placeholder="Ej. No suspender bajo ninguna circunstancia"
-                  value={medNotas}
-                  onChange={(e) => setMedNotas(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-
-              <button type="button" onClick={handleAddMedicamento} style={addButtonStyle}>
-                + Agregar Medicamento
-              </button>
-            </div>
-
-            <h4 style={listTitleStyle}>Medicamentos Registrados ({userMedicamentos.length})</h4>
-            {userMedicamentos.length === 0 ? (
-              <p style={emptyStateStyle}>No se registran medicamentos de uso diario.</p>
-            ) : (
-              <div style={gridListStyle}>
-                {userMedicamentos.map((item, index) => (
-                  <div key={index} style={medCardStyle}>
-                    <div style={medCardContentStyle}>
-                      <div style={medHeaderStyle}>
-                        <strong style={medTitleStyle}>{item.nombre}</strong>
-                        {item.categoria && <span style={medCategoryStyle}>{item.categoria}</span>}
-                      </div>
-                      {item.nombreComercial && (
-                        <span style={medCommercialStyle}>Comercial: {item.nombreComercial}</span>
-                      )}
-                      <div style={medMetaRowStyle}>
-                        <span style={medMetaChipStyle}>Dosis: {item.dosis}</span>
-                        <span style={medMetaChipStyle}>Frecuencia: {item.frecuencia}</span>
-                      </div>
-                      {item.notas && <p style={medNoteStyle}>Nota: {item.notas}</p>}
-                    </div>
-                    <button type="button" onClick={() => handleRemoveMedicamento(index)} style={removeBadgeStyle}>×</button>
+            {showAddBtn && (
+              <button type="button"
+                onClick={() => { onRequestAdd(search.trim()); setOpen(false); setSearch('') }}
+                className="cat-add-new-btn"
+                style={{ display:'flex', alignItems:'center', gap:'9px', width:'100%', padding:'10px 13px',
+                  border:'none', cursor:'pointer', backgroundColor:'transparent',
+                  borderTop:`1px dashed ${theme.colors.border}`,
+                  fontFamily:theme.fonts.main, boxSizing:'border-box', transition:'background-color 0.14s ease' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor='#FEF2F2'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor='transparent'}>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0}}>
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                <div style={{ textAlign:'left' }}>
+                  <div style={{ fontSize:'13px', fontWeight:'700', color:theme.colors.primary }}>
+                    Agregar al catálogo
                   </div>
-                ))}
-              </div>
-            )}
-
-            <div style={buttonRowStyle}>
-              <button type="button" onClick={() => setCurrentStep(3)} style={buttonSecondaryStyle}>
-                &larr; Volver
-              </button>
-              <button type="button" onClick={() => setCurrentStep(5)} style={buttonPrimaryStyle}>
-                Continuar a Contactos &rarr;
-              </button>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 5 && (
-          <div style={formFlexStyle}>
-            <h3 style={stepTitleStyle}>Paso 5: Contactos de Emergencia (Hora Dorada)</h3>
-            <p style={{ fontSize: '13px', color: theme.colors.textMedium, marginBottom: '16px' }}>
-              Registre personas de confianza a quienes el paramédico podrá llamar directamente con un toque desde su celular.
-            </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {userContactos.map((contacto, index) => (
-                <div key={index} style={contactoBoxStyle}>
-                  <div style={contactoHeaderStyle}>
-                    <span style={contactoPriorityStyle}>Prioridad {contacto.ordenPrioridad}</span>
-                    {userContactos.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveContacto(index)} style={removeContactoBtnStyle}>
-                        Eliminar Contacto
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div style={contactoFieldsStyle}>
-                    <div style={inputGroupStyle}>
-                      <label style={labelStyle}>Nombre del Familiar</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej. María Pérez"
-                        value={contacto.nombre}
-                        onChange={(e) => handleContactoChange(index, 'nombre', e.target.value)}
-                        style={inputStyle}
-                      />
-                    </div>
-
-                    <div style={inputGroupStyle}>
-                      <label style={labelStyle}>Teléfono de Emergencia</label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="Ej. +51987654321"
-                        value={contacto.telefono}
-                        onChange={(e) => handleContactoChange(index, 'telefono', e.target.value)}
-                        style={inputStyle}
-                      />
-                    </div>
-
-                    <div style={inputGroupStyle}>
-                      <label style={labelStyle}>Parentesco / Relación</label>
-                      <select
-                        value={contacto.relacion}
-                        onChange={(e) => handleContactoChange(index, 'relacion', e.target.value)}
-                        style={selectStyle}
-                      >
-                        <option value="familiar">Familiar Directo</option>
-                        <option value="conyugue">Cónyuge / Pareja</option>
-                        <option value="amigo">Amigo de confianza</option>
-                        <option value="medico_personal">Médico de Cabecera</option>
-                        <option value="otro">Otro</option>
-                      </select>
-                    </div>
+                  <div style={{ fontSize:'11px', color:theme.colors.textLight }}>
+                    "{search.trim()}" — completar datos en el formulario
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {userContactos.length < 5 && (
-              <button type="button" onClick={handleAddContacto} style={addContactoBtnStyle}>
-                + Adicionar Otro Contacto de Emergencia
               </button>
             )}
-
-            <div style={buttonRowStyle}>
-              <button type="button" onClick={() => setCurrentStep(4)} style={buttonSecondaryStyle} disabled={loading}>
-                &larr; Volver
+            {filtered.map(item => (
+              <button key={item.id} type="button"
+                onClick={() => { onChange(item.id); setOpen(false); setSearch('') }}
+                style={optStyle(item.id === value)}
+                onMouseEnter={e => { if (item.id!==value) e.currentTarget.style.backgroundColor=theme.colors.primaryLight }}
+                onMouseLeave={e => { if (item.id!==value) e.currentTarget.style.backgroundColor='transparent' }}>
+                <div style={{ flex:1, textAlign:'left' }}>
+                  <div style={{ fontSize:'13px', fontWeight:'600', color:item.id===value?theme.colors.primary:theme.colors.textDark }}>{item[labelKey]}</div>
+                  {item[subtitleKey] && <div style={{ fontSize:'11px', color:theme.colors.textLight, textTransform:'capitalize' }}>{item[subtitleKey]}</div>}
+                  {subtitleKey !== 'categoria' && item.categoria && (
+                    <div style={{ fontSize:'10px', color:'#0369A1', fontWeight:'700', marginTop:'1px' }}>{item.categoria}</div>
+                  )}
+                </div>
+                {item.id===value && <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke={theme.colors.primary} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
               </button>
-              <button type="button" onClick={handleFinalSubmit} style={loading ? disabledButtonStyle : finishButtonStyle} disabled={loading}>
-                {loading ? 'Guardando expediente clínico...' : 'Finalizar y Crear Código QR'}
-              </button>
-            </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── AddToCatalogForm: formulario inline para nuevos items ─────────── */
+function AddToCatalogForm({ nombre: initNombre, categories, extraFields, onConfirm, onCancel, loading }) {
+  const [nombre,   setNombre]   = useState(initNombre || '')
+  const [categoria,setCat]      = useState(categories[0]?.value || '')
+  const [extra,    setExtra]    = useState({})
+
+  return (
+    <div style={addCatFormStyle}>
+      <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px' }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.5" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        <span style={{ fontSize:'12px', fontWeight:'700', color:theme.colors.primary, textTransform:'uppercase', letterSpacing:'0.6px' }}>
+          Agregar al catálogo
+        </span>
+      </div>
+
+      <div style={grid2inner}>
+        {/* Nombre principal */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'5px', gridColumn: extraFields?.length ? '1' : 'span 2' }}>
+          <label style={labelStyle}>Nombre <span style={{ color:theme.colors.primary }}>*</span></label>
+          <input type="text" value={nombre} onChange={e=>setNombre(e.target.value)}
+            style={legacyInput} className="rms-input"
+            placeholder="Nombre completo…"/>
+        </div>
+
+        {/* Campos extra (ej. nombre_comercial para meds) */}
+        {extraFields?.map(f => (
+          <div key={f.key} style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+            <label style={labelStyle}>{f.label} {f.required && <span style={{ color:theme.colors.primary }}>*</span>}{!f.required && <span style={{ color:theme.colors.textLight, fontWeight:'400' }}> (opcional)</span>}</label>
+            <input type="text" value={extra[f.key]||''} onChange={e=>setExtra(x=>({...x,[f.key]:e.target.value}))}
+              placeholder={f.placeholder||''} style={legacyInput} className="rms-input"/>
+          </div>
+        ))}
+
+        {/* Categoría */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'5px', gridColumn:'span 2' }}>
+          <label style={labelStyle}>Categoría <span style={{ color:theme.colors.primary }}>*</span></label>
+          <CustomSelect
+            options={categories}
+            value={categoria}
+            onChange={setCat}
+            placeholder="— Seleccionar categoría —"/>
+        </div>
+
+        {/* Botones */}
+        <div style={{ gridColumn:'span 2', display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+          <button type="button" onClick={onCancel} style={btnSecStyle} className="rms-btn-sec">Cancelar</button>
+          <button type="button" disabled={!nombre.trim() || !categoria || loading}
+            onClick={() => onConfirm({ nombre: nombre.trim(), categoria, ...extra })}
+            style={!nombre.trim()||!categoria||loading ? btnDisStyle : {...btnPriStyle, padding:'9px 20px'}}
+            className={!nombre.trim()||!categoria||loading ? '' : 'rms-btn-primary'}>
+            {loading ? 'Guardando…' : 'Confirmar y agregar'}
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
-// Styling definitions
-const spinnerContainerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: '60vh',
+/* ─── VField ───────────────────────────────────────────────────────── */
+function VField({ label, required, hint, error, touched, value, noIcon, children }) {
+  const isValid = touched && !error && (value !== '' && value != null)
+  const isError = touched && !!error
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+      <label style={labelStyle}>
+        {label}
+        {required && <span style={{ color:theme.colors.primary }}> *</span>}
+        {hint && <span style={{ color:theme.colors.textLight, fontWeight:'400', marginLeft:'4px' }}>{hint}</span>}
+      </label>
+      <div style={{ position:'relative' }}>
+        {children}
+        {!noIcon && (isValid || isError) && (
+          <span style={fieldIconStyle}>{isValid ? Ic.check : Ic.error}</span>
+        )}
+      </div>
+      {isError && <span style={fieldErrStyle}>{error}</span>}
+    </div>
+  )
 }
 
-const spinnerStyle = {
-  width: '50px',
-  height: '50px',
-  border: '5px solid #e2e8f0',
-  borderTop: '5px solid #dc2626',
-  borderRadius: '50%',
-  animation: 'spin 1s linear infinite'
+/* ─── StepTitle con typewriter ─────────────────────────────────────── */
+function StepTitle({ stepIndex, icon }) {
+  const { displayed, done } = useTypewriter(STEP_TITLES[stepIndex], 38)
+  return (
+    <div style={stepTitleContainerStyle}>
+      <span style={stepTitleIconBoxStyle}>{icon}</span>
+      <h3 style={stepTitleTextStyle}>
+        {displayed}{!done && <span className="rms-cursor">|</span>}
+      </h3>
+    </div>
+  )
 }
 
-const containerStyle = {
-  maxWidth: '820px',
-  margin: '0 auto',
-  paddingBottom: '40px',
+/* ─── Stepper con íconos ───────────────────────────────────────────── */
+function Stepper({ current }) {
+  return (
+    <div style={stepperWrapStyle}>
+      {STEP_LABELS.map((label, i) => {
+        const s = i + 1; const done = s < current; const active = s === current
+        return (
+          <div key={i} style={stepItemStyle}>
+            {i > 0 && <div style={connectorStyle(done || active)} />}
+            <div style={stepCircleStyle(done, active)}>
+              {done
+                ? <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                : <span style={{ color: active ? '#fff' : theme.colors.textLight, display:'flex' }}>{STEP_ICONS[i]}</span>
+              }
+            </div>
+            <span style={stepLblStyle(done, active)}>{label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
-const wizardHeaderStyle = {
-  textAlign: 'center',
-  marginBottom: '40px',
+/* ─── validateStep1 ────────────────────────────────────────────────── */
+function validateStep1(d) {
+  const e = {}
+  if (!d.nombreCompleto.trim()) e.nombreCompleto = 'El nombre completo es requerido.'
+  if (!d.dni.trim())            e.dni = 'El número de documento es requerido.'
+  if (d.telefono && (d.telefono.length !== 9 || !d.telefono.startsWith('9')))
+    e.telefono = 'Debe tener 9 dígitos y comenzar con 9.'
+  if (!d.fechaNacimiento) e.fechaNacimiento = 'La fecha de nacimiento es requerida.'
+  else if (new Date(d.fechaNacimiento) >= new Date()) e.fechaNacimiento = 'Debe ser anterior al día de hoy.'
+  if (d.pesoKg   && (parseFloat(d.pesoKg) <= 0   || parseFloat(d.pesoKg) > 300))  e.pesoKg   = 'Peso válido: 1 – 300 kg.'
+  if (d.alturaCm && (parseInt(d.alturaCm) < 50    || parseInt(d.alturaCm) > 250))  e.alturaCm = 'Altura válida: 50 – 250 cm.'
+  return e
 }
 
-const titleStyle = {
-  fontSize: '28px',
-  fontWeight: '800',
-  color: theme.colors.textDark,
-  letterSpacing: '-0.75px',
+/* ─── validateContact ──────────────────────────────────────────────── */
+function validateContact(c) {
+  const e = {}
+  if (c.nombre && /\d/.test(c.nombre)) e.nombre = 'El nombre no debe contener números.'
+  if (c.telefono && (c.telefono.length !== 9 || !c.telefono.startsWith('9')))
+    e.telefono = 'Debe tener 9 dígitos y comenzar con 9.'
+  return e
 }
 
-const subtitleStyle = {
-  fontSize: '14px',
-  color: theme.colors.textMedium,
-  marginTop: '6px',
+/* ─── EmptyState ───────────────────────────────────────────────────── */
+function EmptyState({ icon, title, desc }) {
+  return (
+    <div style={emptyCardStyle}>
+      <div style={{ display:'flex', justifyContent:'center', marginBottom:'12px' }}>{icon}</div>
+      <h4 style={emptyTitleStyle}>{title}</h4>
+      <p style={emptyDescStyle}>{desc}</p>
+      <div style={emptyTagStyle}>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#10B981" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Sin registros — puede continuar al siguiente paso
+      </div>
+    </div>
+  )
 }
 
-const stepperContainerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginTop: '32px',
-  position: 'relative',
-  padding: '0 16px',
+/* ─── AddButton ────────────────────────────────────────────────────── */
+function AddButton({ onClick, label }) {
+  return (
+    <button type="button" onClick={onClick} className="rms-add-btn"
+      style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
+        backgroundColor:'transparent', color:theme.colors.primary,
+        border:`1.5px solid ${theme.colors.primaryBorder}`,
+        padding:'10px 18px', borderRadius:theme.borderRadius.md,
+        fontSize:'13px', fontWeight:'700', cursor:'pointer',
+        gridColumn:'span 2', width:'100%', transition:'all 0.18s ease',
+        fontFamily:theme.fonts.main }}>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      {label}
+    </button>
+  )
 }
 
-const stepWrapperStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '8px',
-  zIndex: 2,
-  width: '70px',
+/* ─── NavRow ───────────────────────────────────────────────────────── */
+function NavRow({ onBack, onNext, nextLabel, nextDisabled, nextGreen }) {
+  return (
+    <div style={buttonRowStyle}>
+      <button type="button" onClick={onBack} style={btnSecStyle} className="rms-btn-sec">← Volver</button>
+      <button type="button" onClick={onNext} disabled={nextDisabled}
+        style={nextDisabled ? btnDisStyle : btnPriStyle}
+        className={nextDisabled ? '' : nextGreen ? 'rms-btn-finish' : 'rms-btn-continue'}>
+        {nextLabel}
+      </button>
+    </div>
+  )
 }
 
-const stepIconStyle = {
-  width: '32px',
-  height: '32px',
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '13px',
-  fontWeight: '700',
-  transition: theme.transitions.default,
-}
+/* ══════════════════════════════════════════════════════════════════════
+   COMPONENTE PRINCIPAL
+══════════════════════════════════════════════════════════════════════ */
+export default function RegistroMultistep() {
+  const navigate = useNavigate()
+  const [currentStep, setCurrentStep]   = useState(1)
+  const [loading, setLoading]           = useState(false)
+  const [fetchingData, setFetchingData] = useState(true)
+  const [errorMessage, setErrorMessage] = useState(null)
 
-const activeStepIconStyle = {
-  ...stepIconStyle,
-  backgroundColor: theme.colors.primary,
-  color: '#FFFFFF',
-  boxShadow: '0 0 0 4px #FEE2E2',
-}
+  const [catalogoAlergias,     setCatalogoAlergias]     = useState([])
+  const [catalogoCondiciones,  setCatalogoCondiciones]  = useState([])
+  const [catalogoMedicamentos, setCatalogoMedicamentos] = useState([])
 
-const completedStepIconStyle = {
-  ...stepIconStyle,
-  backgroundColor: theme.colors.success,
-  color: '#FFFFFF',
-}
+  /* Paso 1 */
+  const [gen, setGenRaw] = useState({
+    nombreCompleto:'', dni:'', telefono:'',
+    tipoSangre:'desconocido', sexo:'prefiero_no_decir',
+    fechaNacimiento:'', donanteOrganos:false,
+    pesoKg:'', alturaCm:'', notasAdicionales:'',
+  })
+  const [t1, setT1] = useState({})
 
-const pendingStepIconStyle = {
-  ...stepIconStyle,
-  backgroundColor: '#E2E8F0',
-  color: theme.colors.textLight,
-}
+  /* Paso 2 */
+  const [userAlergias,  setUserAlergias]  = useState([])
+  const [selAlergiaId,  setSelAlergiaId]  = useState('')
+  const [sevAlergia,    setSevAlergia]    = useState('leve')
+  const [reacAlergia,   setReacAlergia]   = useState('')
+  const [addingAlergia, setAddingAlergia] = useState(null) // null | nombre string
 
-const stepLabelStyle = {
-  fontSize: '11px',
-  fontWeight: '600',
-  color: theme.colors.textLight,
-  textAlign: 'center',
-}
+  /* Paso 3 */
+  const [userCondiciones, setUserCondiciones] = useState([])
+  const [selCondId,       setSelCondId]       = useState('')
+  const [estadoCond,      setEstadoCond]      = useState('activa')
+  const [tratCond,        setTratCond]        = useState('')
+  const [addingCond,      setAddingCond]      = useState(null)
 
-const activeStepLabelStyle = {
-  ...stepLabelStyle,
-  color: theme.colors.primary,
-  fontWeight: '700',
-}
+  /* Paso 4 */
+  const [userMeds, setUserMeds]           = useState([])
+  const [selMedId,     setSelMedId]       = useState('')
+  const [medDosis,     setMedDosis]       = useState('')
+  const [medFrecSel,   setMedFrecSel]     = useState('')
+  const [medFrecCustom,setMedFrecCustom]  = useState('')
+  const [medNotas,     setMedNotas]       = useState('')
+  const [addingMed,    setAddingMed]      = useState(null)
+  const [addingCatLoading, setAddingCatLoading] = useState(false)
 
-const progressBarBgStyle = {
-  position: 'absolute',
-  top: '16px',
-  left: '48px',
-  right: '48px',
-  height: '4px',
-  backgroundColor: '#E2E8F0',
-  zIndex: 1,
-}
+  /* Paso 5 */
+  const [userContactos, setUserContactos] = useState([
+    { nombre:'', telefono:'', relacion:'familiar', ordenPrioridad:1 },
+    { nombre:'', telefono:'', relacion:'familiar', ordenPrioridad:2 },
+  ])
+  const [touchedC,    setTouchedC]    = useState({})
+  const [dragIdx,     setDragIdx]     = useState(null)
+  const [dragOverIdx, setDragOverIdx] = useState(null)
 
-const progressBarFillStyle = {
-  height: '100%',
-  backgroundColor: theme.colors.primary,
-  transition: theme.transitions.default,
-}
+  const mainTitle = useTypewriter('Ficha Vital de Emergencia', 52)
 
-const cardStyle = {
-  backgroundColor: theme.colors.bgPrimary,
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.lg,
-  padding: '36px',
-  boxShadow: theme.shadows.card,
-}
+  /* ── Carga inicial ── */
+  useEffect(() => {
+    async function load() {
+      try {
+        const [cats, ficha] = await Promise.all([api.getCatalogs(), api.getFicha()])
+        setCatalogoAlergias(cats.alergias?.length     ? cats.alergias    : SEED_ALERGIAS)
+        setCatalogoCondiciones(cats.condiciones?.length ? cats.condiciones : SEED_CONDICIONES)
+        setCatalogoMedicamentos(cats.medicamentos || [])
 
-const stepTitleStyle = {
-  fontSize: '18px',
-  fontWeight: '700',
-  color: theme.colors.textDark,
-  borderBottom: `2px solid ${theme.colors.border}`,
-  paddingBottom: '12px',
-  marginBottom: '24px',
-}
+        const pre = {
+          nombreCompleto:  ficha.nombre_completo  || '',
+          dni:             ficha.numero_documento  || '',
+          telefono:        ficha.telefono          || '',
+          tipoSangre:      ficha.tipo_sangre       || 'desconocido',
+          sexo:            ficha.sexo              || 'prefiero_no_decir',
+          fechaNacimiento: ficha.fecha_nacimiento  || '',
+          donanteOrganos:  ficha.donante_organos   || false,
+          pesoKg:          ficha.peso_kg   != null ? String(ficha.peso_kg)   : '',
+          alturaCm:        ficha.altura_cm != null ? String(ficha.altura_cm) : '',
+          notasAdicionales:ficha.notas_adicionales || '',
+        }
+        setGenRaw(pre)
+        const at = {}
+        if (pre.nombreCompleto)  at.nombreCompleto  = true
+        if (pre.dni)             at.dni             = true
+        if (pre.telefono)        at.telefono        = true
+        if (pre.fechaNacimiento) at.fechaNacimiento = true
+        if (pre.pesoKg)          at.pesoKg          = true
+        if (pre.alturaCm)        at.alturaCm        = true
+        setT1(at)
 
-const formGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '20px',
-}
+        if (ficha.alergias?.length)
+          setUserAlergias(ficha.alergias.map(a=>({ alergiaId:a.alergia_id, severidad:a.severidad, reaccion:a.reaccion })))
+        if (ficha.condiciones?.length)
+          setUserCondiciones(ficha.condiciones.map(c=>({ condicionId:c.condicion_id, estado:c.estado, tratamiento:c.tratamiento })))
+        if (ficha.medicamentos?.length)
+          setUserMeds(ficha.medicamentos.map(m=>({ nombre:m.nombre, dosis:m.dosis, frecuencia:m.frecuencia, notas:m.notas })))
+        if (ficha.contactos?.length)
+          setUserContactos(ficha.contactos.map(c=>({ nombre:c.nombre, telefono:c.telefono, relacion:c.relacion, ordenPrioridad:c.orden_prioridad })))
+      } catch (err) {
+        setErrorMessage(err.message || 'Error al cargar datos clínicos.')
+        setCatalogoAlergias(SEED_ALERGIAS); setCatalogoCondiciones(SEED_CONDICIONES)
+      } finally { setFetchingData(false) }
+    }
+    load()
+  }, [])
 
-const formFlexStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-}
+  /* ── Paso 1 ── */
+  const errors1   = validateStep1(gen)
+  const step1Done = !errors1.nombreCompleto && !errors1.dni && !errors1.fechaNacimiento
+                    && !errors1.pesoKg && !errors1.alturaCm && !errors1.telefono
 
-const inputGroupStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '6px',
-}
+  const setGen = (field) => (val) => { setGenRaw(d=>({...d,[field]:val})); setT1(t=>({...t,[field]:true})) }
+  const blur1  = (f) => () => setT1(t=>({...t,[f]:true}))
 
-const labelStyle = {
-  fontSize: '13px',
-  fontWeight: '600',
-  color: theme.colors.textMedium,
-}
-
-const inputStyle = {
-  width: '100%',
-  padding: '12px 14px',
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.md,
-  fontSize: '14px',
-  outline: 'none',
-  fontFamily: theme.fonts.main,
-  color: theme.colors.textDark,
-  transition: theme.transitions.fast,
-  boxShadow: theme.shadows.input,
-}
-
-const selectStyle = {
-  ...inputStyle,
-  cursor: 'pointer',
-}
-
-const checkboxWrapperStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '12px 16px',
-  backgroundColor: theme.colors.bgSecondary,
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.md,
-}
-
-const checkboxStyle = {
-  width: '18px',
-  height: '18px',
-  cursor: 'pointer',
-  accentColor: theme.colors.primary,
-}
-
-const textareaStyle = {
-  ...inputStyle,
-  minHeight: '100px',
-  resize: 'vertical',
-}
-
-const builderBoxStyle = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '16px',
-  padding: '20px',
-  backgroundColor: theme.colors.bgSecondary,
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.md,
-  marginBottom: '24px',
-}
-
-const addButtonStyle = {
-  gridColumn: 'span 2',
-  backgroundColor: theme.colors.textDark,
-  color: '#FFFFFF',
-  border: 'none',
-  padding: '12px',
-  borderRadius: theme.borderRadius.md,
-  fontSize: '13px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: theme.transitions.fast,
-  marginTop: '8px',
-}
-
-const listTitleStyle = {
-  fontSize: '14px',
-  fontWeight: '700',
-  color: theme.colors.textDark,
-  marginBottom: '12px',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-}
-
-const emptyStateStyle = {
-  padding: '24px',
-  textAlign: 'center',
-  backgroundColor: theme.colors.bgSecondary,
-  border: `1px dashed ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.md,
-  color: theme.colors.textLight,
-  fontSize: '13px',
-  fontWeight: '500',
-  marginBottom: '32px',
-}
-
-const gridListStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-  marginBottom: '32px',
-}
-
-const badgeStyle = (severity) => {
-  const isSevere = severity === 'severa' || severity === 'anafilaxia'
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '16px',
-    backgroundColor: isSevere ? theme.colors.dangerLight : theme.colors.warningLight,
-    border: `1px solid ${isSevere ? theme.colors.primaryBorder : '#FEF3C7'}`,
-    borderRadius: theme.borderRadius.md,
+  const iStyle = (field) => {
+    const v = t1[field] && !errors1[field] && gen[field]
+    const e = t1[field] && !!errors1[field]
+    return {
+      ...baseInput,
+      borderColor: v ? '#10B981' : e ? '#EF4444' : theme.colors.border,
+      boxShadow:   v ? '0 0 0 3px rgba(16,185,129,0.08)' : e ? '0 0 0 3px rgba(239,68,68,0.08)' : theme.shadows.input,
+      paddingRight: (v||e) ? '36px' : '14px',
+    }
   }
-}
 
-const conditionCardStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: '16px',
-  backgroundColor: theme.colors.bgSecondary,
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.md,
-}
-
-const medCardStyle = {
-  ...conditionCardStyle,
-  alignItems: 'flex-start',
-  backgroundColor: '#F8FAFC',
-  border: '1px solid #CBD5E1',
-  boxShadow: '0 8px 18px rgba(15, 23, 42, 0.04)',
-}
-
-const medCardContentStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px',
-  minWidth: 0,
-}
-
-const medHeaderStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  flexWrap: 'wrap',
-}
-
-const medTitleStyle = {
-  fontSize: '15px',
-  fontWeight: '800',
-  color: theme.colors.textDark,
-}
-
-const medCategoryStyle = {
-  fontSize: '10px',
-  fontWeight: '800',
-  color: '#0369A1',
-  backgroundColor: '#E0F2FE',
-  border: '1px solid #BAE6FD',
-  borderRadius: '4px',
-  padding: '3px 7px',
-  textTransform: 'uppercase',
-}
-
-const medCommercialStyle = {
-  fontSize: '12px',
-  fontWeight: '600',
-  color: theme.colors.textMedium,
-}
-
-const medMetaRowStyle = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '8px',
-}
-
-const medMetaChipStyle = {
-  fontSize: '11.5px',
-  fontWeight: '700',
-  color: '#334155',
-  backgroundColor: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  borderRadius: '6px',
-  padding: '5px 8px',
-}
-
-const medNoteStyle = {
-  fontSize: '12px',
-  color: theme.colors.textMedium,
-  marginTop: '2px',
-  fontWeight: '500',
-  lineHeight: '1.35',
-}
-
-const badgeTitleStyle = {
-  fontSize: '15px',
-  fontWeight: '700',
-  color: theme.colors.textDark,
-}
-
-const badgeCatStyle = {
-  fontSize: '11px',
-  fontWeight: '600',
-  color: theme.colors.textLight,
-  marginLeft: '10px',
-  backgroundColor: 'rgba(15, 23, 42, 0.04)',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  textTransform: 'uppercase',
-}
-
-const badgeSubStyle = {
-  fontSize: '12.5px',
-  color: theme.colors.textMedium,
-  marginTop: '4px',
-  fontWeight: '500',
-}
-
-const badgeSeverityStyle = (severity) => {
-  const isSevere = severity === 'severa' || severity === 'anafilaxia'
-  return {
-    fontSize: '10px',
-    fontWeight: '700',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    backgroundColor: isSevere ? theme.colors.primary : theme.colors.warning,
-    color: '#FFFFFF',
+  const handleStep1 = (e) => {
+    e.preventDefault()
+    const all = ['nombreCompleto','dni','telefono','fechaNacimiento','pesoKg','alturaCm']
+    setT1(all.reduce((a,f)=>({...a,[f]:true}),{}))
+    const errs = validateStep1(gen)
+    if (errs.nombreCompleto||errs.dni||errs.fechaNacimiento||errs.pesoKg||errs.alturaCm||errs.telefono) {
+      setErrorMessage('Corrige los campos marcados en rojo.'); return
+    }
+    setErrorMessage(null); setCurrentStep(2)
   }
+
+  /* ── Paso 2 ── */
+  const addAlergia = () => {
+    if (!selAlergiaId) { setErrorMessage('Seleccione una alergia del catálogo.'); return }
+    if (!isValidUuid(selAlergiaId)) { setErrorMessage('ID de alergia inválido.'); return }
+    if (userAlergias.some(a=>a.alergiaId===selAlergiaId)) { setErrorMessage('Esta alergia ya fue agregada.'); return }
+    setUserAlergias([...userAlergias, { alergiaId:selAlergiaId, severidad:sevAlergia, reaccion:reacAlergia }])
+    setSelAlergiaId(''); setSevAlergia('leve'); setReacAlergia(''); setErrorMessage(null)
+  }
+  const confirmAddAlergia = async ({ nombre, categoria }) => {
+    setAddingCatLoading(true)
+    try {
+      const nueva = await api.addAlergiasCatalog({ nombre, categoria })
+      const item  = { id: nueva.id, nombre: nueva.nombre, categoria: nueva.categoria, descripcion: null }
+      setCatalogoAlergias(prev => [...prev, item].sort((a,b)=>a.nombre.localeCompare(b.nombre)))
+      setSelAlergiaId(nueva.id)
+      setAddingAlergia(null); setErrorMessage(null)
+    } catch(err) {
+      setErrorMessage(err.message || 'Error al agregar al catálogo.')
+    } finally { setAddingCatLoading(false) }
+  }
+
+  /* ── Paso 3 ── */
+  const addCondicion = () => {
+    if (!selCondId) { setErrorMessage('Seleccione una condición del catálogo.'); return }
+    if (!isValidUuid(selCondId)) { setErrorMessage('ID de condición inválido.'); return }
+    if (userCondiciones.some(c=>c.condicionId===selCondId)) { setErrorMessage('Esta condición ya fue agregada.'); return }
+    setUserCondiciones([...userCondiciones, { condicionId:selCondId, estado:estadoCond, tratamiento:tratCond }])
+    setSelCondId(''); setEstadoCond('activa'); setTratCond(''); setErrorMessage(null)
+  }
+  const confirmAddCond = async ({ nombre, categoria }) => {
+    setAddingCatLoading(true)
+    try {
+      const nueva = await api.addCondicionCatalog({ nombre, categoria })
+      const item  = { id: nueva.id, nombre: nueva.nombre, categoria: nueva.categoria, descripcion: null }
+      setCatalogoCondiciones(prev => [...prev, item].sort((a,b)=>a.nombre.localeCompare(b.nombre)))
+      setSelCondId(nueva.id)
+      setAddingCond(null); setErrorMessage(null)
+    } catch(err) {
+      setErrorMessage(err.message || 'Error al agregar al catálogo.')
+    } finally { setAddingCatLoading(false) }
+  }
+
+  /* ── Paso 4 ── */
+  const frecuenciaFinal = medFrecSel === 'personalizado'
+    ? medFrecCustom
+    : FRECUENCIAS.find(f=>f.value===medFrecSel)?.label || ''
+
+  const addMed = () => {
+    const med = catalogoMedicamentos.find(m=>m.id===selMedId)
+    if (!med) { setErrorMessage('Seleccione un medicamento del catálogo.'); return }
+    if (userMeds.some(m=>m.medId===selMedId)) { setErrorMessage('Este medicamento ya fue agregado.'); return }
+    setUserMeds([...userMeds, {
+      medId:          med.id,
+      nombre:         med.nombre_generico,
+      nombreComercial:med.nombre_comercial || '',
+      categoria:      med.categoria || '',
+      dosis:          medDosis.trim() || 'No especificada',
+      frecuencia:     frecuenciaFinal || 'No especificada',
+      notas:          medNotas.trim(),
+    }])
+    setSelMedId(''); setMedDosis(''); setMedFrecSel(''); setMedFrecCustom(''); setMedNotas('')
+    setErrorMessage(null)
+  }
+  const confirmAddMed = async ({ nombre, categoria, nombre_comercial }) => {
+    setAddingCatLoading(true)
+    try {
+      const nueva = await api.addMedCatalog({ nombre_generico: nombre, nombre_comercial: nombre_comercial||null, categoria })
+      const item  = { id: nueva.id, nombre_generico: nueva.nombre_generico, nombre_comercial: nueva.nombre_comercial, categoria: nueva.categoria }
+      setCatalogoMedicamentos(prev => [...prev, item].sort((a,b)=>a.nombre_generico.localeCompare(b.nombre_generico)))
+      setSelMedId(nueva.id)
+      setAddingMed(null); setErrorMessage(null)
+    } catch(err) {
+      setErrorMessage(err.message || 'Error al agregar al catálogo.')
+    } finally { setAddingCatLoading(false) }
+  }
+
+  /* ── Paso 5 ── */
+  const setContacto = (i, f, v) => { const n=[...userContactos]; n[i][f]=v; setUserContactos(n) }
+  const touchC = (i, f) => setTouchedC(t=>({...t,[`${i}_${f}`]:true}))
+  const addContacto = () => {
+    if (userContactos.length >= 5) return
+    setUserContactos([...userContactos, { nombre:'', telefono:'', relacion:'familiar', ordenPrioridad:userContactos.length+1 }])
+  }
+  const removeContacto = (i) => {
+    if (userContactos.length <= 1) return
+    setUserContactos(userContactos.filter((_,idx)=>idx!==i).map((c,idx)=>({...c,ordenPrioridad:idx+1})))
+  }
+
+  const handleDragStart = (e, i) => { setDragIdx(i); e.dataTransfer.effectAllowed='move' }
+  const handleDragOver  = (e, i) => { e.preventDefault(); setDragOverIdx(i) }
+  const handleDrop      = (e, i) => {
+    e.preventDefault()
+    if (dragIdx===null||dragIdx===i) { setDragIdx(null); setDragOverIdx(null); return }
+    const nc = [...userContactos]
+    const [moved] = nc.splice(dragIdx, 1)
+    nc.splice(i, 0, moved)
+    setUserContactos(nc.map((c,idx)=>({...c,ordenPrioridad:idx+1})))
+    setDragIdx(null); setDragOverIdx(null)
+  }
+  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null) }
+
+  /* ── Submit ── */
+  const handleSubmit = async () => {
+    setLoading(true); setErrorMessage(null)
+    try {
+      await api.upsertFicha({
+        telefono:          gen.telefono||null,
+        tipo_sangre:       gen.tipoSangre!=='desconocido'     ?gen.tipoSangre:null,
+        sexo:              gen.sexo!=='prefiero_no_decir'     ?gen.sexo:null,
+        fecha_nacimiento:  gen.fechaNacimiento||null,
+        donante_organos:   gen.donanteOrganos,
+        peso_kg:           gen.pesoKg  ?parseFloat(gen.pesoKg) :null,
+        altura_cm:         gen.alturaCm?parseInt(gen.alturaCm) :null,
+        notas_adicionales: gen.notasAdicionales.trim()||null,
+        alergias:    userAlergias.map(a=>({ alergia_id:a.alergiaId, severidad:a.severidad, reaccion:a.reaccion||null })),
+        condiciones: userCondiciones.map(c=>({ condicion_id:c.condicionId, estado:c.estado, tratamiento:c.tratamiento||null })),
+        medicamentos:userMeds.map(m=>({ nombre:m.nombre, dosis:m.dosis||null, frecuencia:m.frecuencia||null, notas:m.notas||null })),
+        contactos:   userContactos.filter(c=>c.nombre.trim()&&c.telefono.trim())
+                       .map((c,i)=>({ nombre:c.nombre.trim(), telefono:c.telefono.trim(), relacion:c.relacion, orden_prioridad:i+1 })),
+      })
+      navigate('/dashboard')
+    } catch(err) {
+      setErrorMessage(err.message||'Error al guardar los datos clínicos.')
+    } finally { setLoading(false) }
+  }
+
+  /* ── Loading ── */
+  if (fetchingData) return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'60vh' }}>
+      <div style={{ width:'44px', height:'44px', border:`4px solid ${theme.colors.border}`, borderTop:`4px solid ${theme.colors.primary}`, borderRadius:'50%', animation:'spin 0.9s linear infinite' }} />
+      <p style={{ color:theme.colors.textMedium, marginTop:'16px', fontWeight:'500' }}>Cargando expediente clínico…</p>
+    </div>
+  )
+
+  /* ══ RENDER ══ */
+  return (
+    <>
+      <style>{css}</style>
+      <div style={pageStyle} className="rms-fade">
+
+        {/* HEADER */}
+        <div style={{ textAlign:'center', marginBottom:'28px' }}>
+          <div style={titleBoxStyle}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" style={{flexShrink:0}}>
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <span style={titleBoxText}>{mainTitle.displayed}<span className="rms-cursor">|</span></span>
+          </div>
+          <p style={{ fontSize:'13.5px', color:theme.colors.textMedium, fontWeight:'500', margin:'0 0 22px' }}>
+            Complete todos los campos para generar su QR vital de la Hora Dorada
+          </p>
+          <Stepper current={currentStep} />
+        </div>
+
+        {errorMessage && (
+          <div style={errBannerStyle}>{Ic.alert}{errorMessage}</div>
+        )}
+
+        <div style={cardStyle}>
+
+          {/* ══ PASO 1 ══ */}
+          {currentStep === 1 && (
+            <form onSubmit={handleStep1} noValidate>
+              <StepTitle stepIndex={0} icon={Ic.person}/>
+              <div style={grid2}>
+                <VField label="Nombre Completo" required error={errors1.nombreCompleto} touched={t1.nombreCompleto} value={gen.nombreCompleto}>
+                  <input value={gen.nombreCompleto} onChange={e=>setGen('nombreCompleto')(e.target.value)} onBlur={blur1('nombreCompleto')}
+                    placeholder="ej. Juan Carlos Pérez Alva" style={iStyle('nombreCompleto')} className="rms-input"/>
+                </VField>
+
+                <VField label="Número de Documento" required error={errors1.dni} touched={t1.dni} value={gen.dni}>
+                  <input value={gen.dni} onChange={e=>setGen('dni')(e.target.value.replace(/\D/g,'').slice(0,12))} onBlur={blur1('dni')}
+                    placeholder="ej. 12345678" style={iStyle('dni')} className="rms-input"/>
+                </VField>
+
+                <VField label="Celular" hint="(opcional)" error={errors1.telefono} touched={t1.telefono} value={gen.telefono}>
+                  <input value={gen.telefono} onChange={e=>setGen('telefono')(e.target.value.replace(/\D/g,'').slice(0,9))} onBlur={blur1('telefono')}
+                    placeholder="ej. 987654321" style={iStyle('telefono')} className="rms-input"/>
+                </VField>
+
+                <VField label="Fecha de Nacimiento" required error={errors1.fechaNacimiento} touched={t1.fechaNacimiento} value={gen.fechaNacimiento}>
+                  <div style={{ position:'relative' }}>
+                    <input type="date" value={gen.fechaNacimiento}
+                      onChange={e=>setGen('fechaNacimiento')(e.target.value)} onBlur={blur1('fechaNacimiento')}
+                      max={new Date().toISOString().split('T')[0]}
+                      style={{ ...iStyle('fechaNacimiento'), paddingLeft:'36px' }} className="rms-input"/>
+                    <span style={iconLeft}>{Ic.calendar}</span>
+                    {t1.fechaNacimiento && (
+                      <span style={fieldIconStyle}>
+                        {!errors1.fechaNacimiento && gen.fechaNacimiento ? Ic.check : errors1.fechaNacimiento ? Ic.error : null}
+                      </span>
+                    )}
+                  </div>
+                </VField>
+
+                <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                  <label style={labelStyle}>Tipo de Sangre <span style={{ color:theme.colors.textLight, fontWeight:'400' }}>(opcional)</span></label>
+                  <CustomSelect options={BLOOD_TYPES} value={gen.tipoSangre} onChange={v=>setGenRaw(d=>({...d,tipoSangre:v}))} icon={Ic.blood}/>
+                  {gen.tipoSangre !== 'desconocido' && <span style={miniGreenLabel}>{Ic.check} {gen.tipoSangre}</span>}
+                </div>
+
+                <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                  <label style={labelStyle}>Sexo Biológico <span style={{ color:theme.colors.textLight, fontWeight:'400' }}>(opcional)</span></label>
+                  <CustomSelect options={SEXOS} value={gen.sexo} onChange={v=>setGenRaw(d=>({...d,sexo:v}))} icon={Ic.gender}/>
+                  {gen.sexo !== 'prefiero_no_decir' && <span style={miniGreenLabel}>{Ic.check} Seleccionado</span>}
+                </div>
+
+                <VField label="Peso" hint="(opcional)" error={errors1.pesoKg} touched={t1.pesoKg} value={gen.pesoKg} noIcon>
+                  <div style={{ position:'relative' }}>
+                    <input type="number" step="0.1" min="1" max="300"
+                      value={gen.pesoKg} onChange={e=>setGen('pesoKg')(e.target.value)} onBlur={blur1('pesoKg')}
+                      placeholder="ej. 72.5" style={{ ...iStyle('pesoKg'), paddingLeft:'36px', paddingRight:'40px' }} className="rms-input"/>
+                    <span style={iconLeft}>{Ic.weight}</span>
+                    <span style={unitBadge}>kg</span>
+                  </div>
+                </VField>
+
+                <VField label="Altura" hint="(opcional)" error={errors1.alturaCm} touched={t1.alturaCm} value={gen.alturaCm} noIcon>
+                  <div style={{ position:'relative' }}>
+                    <input type="number" min="50" max="250"
+                      value={gen.alturaCm} onChange={e=>setGen('alturaCm')(e.target.value)} onBlur={blur1('alturaCm')}
+                      placeholder="ej. 175" style={{ ...iStyle('alturaCm'), paddingLeft:'36px', paddingRight:'40px' }} className="rms-input"/>
+                    <span style={iconLeft}>{Ic.height}</span>
+                    <span style={unitBadge}>cm</span>
+                  </div>
+                </VField>
+
+                <div style={{ gridColumn:'span 2' }}>
+                  <div style={checkWrap}>
+                    <input type="checkbox" id="donante" checked={gen.donanteOrganos}
+                      onChange={e=>setGenRaw(d=>({...d,donanteOrganos:e.target.checked}))} style={cbStyle}/>
+                    <label htmlFor="donante" style={{ fontSize:'13px', fontWeight:'600', color:theme.colors.textMedium, cursor:'pointer', margin:0 }}>
+                      Soy Donante de Órganos y Tejidos
+                    </label>
+                    {gen.donanteOrganos && <span style={{ marginLeft:'auto', ...miniGreenLabel }}>{Ic.check} Registrado</span>}
+                  </div>
+                </div>
+
+                <div style={{ gridColumn:'span 2', display:'flex', flexDirection:'column', gap:'5px' }}>
+                  <label style={labelStyle}>Notas Clínicas Críticas <span style={{ color:theme.colors.textLight, fontWeight:'400' }}>(opcional)</span></label>
+                  <textarea
+                    placeholder="ej. Marcapasos implantado en ventrículo izquierdo (2024).&#10;ej. Alérgico severo al contraste iodado para tomografías."
+                    maxLength="2000" value={gen.notasAdicionales}
+                    onChange={e=>setGenRaw(d=>({...d,notasAdicionales:e.target.value}))}
+                    style={textareaStyle} className="rms-input"/>
+                  <span style={{ fontSize:'11px', color:theme.colors.textLight, textAlign:'right' }}>{gen.notasAdicionales.length}/2000</span>
+                </div>
+
+                <div style={{ gridColumn:'span 2', display:'flex', justifyContent:'flex-end', borderTop:`1px solid ${theme.colors.border}`, paddingTop:'20px', marginTop:'6px' }}>
+                  <button type="submit" style={btnPriStyle} className={step1Done ? 'rms-btn-ready' : 'rms-btn-primary'}>
+                    Continuar a Alergias →
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* ══ PASO 2: Alergias ══ */}
+          {currentStep === 2 && (
+            <div>
+              <StepTitle stepIndex={1} icon={
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              }/>
+
+              <div style={builderBox}>
+                <SectionLabel text="Agregar alergia"/>
+                <div style={grid2inner}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Alergia del catálogo</label>
+                    <CatalogSelect items={catalogoAlergias} value={selAlergiaId} onChange={setSelAlergiaId}
+                      placeholder="— Buscar alergia —"
+                      onRequestAdd={(nombre) => { setAddingAlergia(nombre); setSelAlergiaId('') }}/>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Severidad clínica</label>
+                    <CustomSelect options={SEVERIDADES} value={sevAlergia} onChange={setSevAlergia} icon={Ic.severity}/>
+                  </div>
+
+                  {addingAlergia !== null && (
+                    <div style={{ gridColumn:'span 2' }}>
+                      <AddToCatalogForm
+                        nombre={addingAlergia} categories={CAT_ALERGIAS}
+                        onConfirm={confirmAddAlergia} onCancel={()=>setAddingAlergia(null)}
+                        loading={addingCatLoading}/>
+                    </div>
+                  )}
+
+                  <div style={{ gridColumn:'span 2', display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Reacción clínica observada</label>
+                    <input type="text" placeholder="ej. Urticaria severa, shock anafiláctico con cianosis"
+                      value={reacAlergia} onChange={e=>setReacAlergia(e.target.value)}
+                      style={legacyInput} className="rms-input"/>
+                  </div>
+
+                  <AddButton onClick={addAlergia} label="Agregar alergia a la lista"/>
+                </div>
+              </div>
+
+              <ListHeader count={userAlergias.length} label="alergias registradas"/>
+              {userAlergias.length === 0
+                ? <EmptyState icon={Ic.noAllergy} title="Sin alergias registradas"
+                    desc="Si no tiene alergias conocidas o aún no las recuerda, puede continuar al siguiente paso."/>
+                : <div style={listStyle}>
+                    {userAlergias.map((item,idx) => {
+                      const d = catalogoAlergias.find(a=>a.id===item.alergiaId)||{nombre:'Alergia',categoria:'otra'}
+                      const sev = item.severidad==='severa'||item.severidad==='anafilaxia'
+                      return (
+                        <div key={idx} style={alergiaCard(sev)}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                            <span style={severityDot(item.severidad)}/>
+                            <strong style={itemTitle}>{d.nombre}</strong>
+                            <span style={catChip}>{d.categoria}</span>
+                            <span style={severityBadge(item.severidad)}>{item.severidad.toUpperCase()}</span>
+                          </div>
+                          {item.reaccion && <p style={itemSub}>Reacción: {item.reaccion}</p>}
+                          <button type="button" onClick={()=>setUserAlergias(userAlergias.filter(a=>a.alergiaId!==item.alergiaId))} style={removeBtn}>×</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+              }
+              <NavRow onBack={()=>setCurrentStep(1)} onNext={()=>{setErrorMessage(null);setCurrentStep(3)}} nextLabel="Continuar a Condiciones →"/>
+            </div>
+          )}
+
+          {/* ══ PASO 3: Condiciones ══ */}
+          {currentStep === 3 && (
+            <div>
+              <StepTitle stepIndex={2} icon={
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/>
+                </svg>
+              }/>
+
+              <div style={builderBox}>
+                <SectionLabel text="Agregar condición crónica"/>
+                <div style={grid2inner}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Condición del catálogo</label>
+                    <CatalogSelect items={catalogoCondiciones} value={selCondId} onChange={setSelCondId}
+                      placeholder="— Buscar condición —"
+                      onRequestAdd={(nombre) => { setAddingCond(nombre); setSelCondId('') }}/>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Estado clínico actual</label>
+                    <CustomSelect options={ESTADOS_COND} value={estadoCond} onChange={setEstadoCond}
+                      icon={<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+                    />
+                  </div>
+
+                  {addingCond !== null && (
+                    <div style={{ gridColumn:'span 2' }}>
+                      <AddToCatalogForm
+                        nombre={addingCond} categories={CAT_CONDICIONES}
+                        onConfirm={confirmAddCond} onCancel={()=>setAddingCond(null)}
+                        loading={addingCatLoading}/>
+                    </div>
+                  )}
+
+                  <div style={{ gridColumn:'span 2', display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Tratamiento / Protocolo vigente</label>
+                    <input type="text" placeholder="ej. Losartán 50 mg cada 12 h, dieta hiposódica"
+                      value={tratCond} onChange={e=>setTratCond(e.target.value)} style={legacyInput} className="rms-input"/>
+                  </div>
+
+                  <AddButton onClick={addCondicion} label="Agregar condición a la lista"/>
+                </div>
+              </div>
+
+              <ListHeader count={userCondiciones.length} label="condiciones registradas"/>
+              {userCondiciones.length === 0
+                ? <EmptyState icon={Ic.noCond} title="Sin condiciones crónicas registradas"
+                    desc="Si no tiene condiciones médicas crónicas diagnosticadas, puede continuar al siguiente paso."/>
+                : <div style={listStyle}>
+                    {userCondiciones.map((item,idx) => {
+                      const d = catalogoCondiciones.find(c=>c.id===item.condicionId)||{nombre:'Condición',categoria:'otra'}
+                      return (
+                        <div key={idx} style={condCard}>
+                          <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                              <strong style={itemTitle}>{d.nombre}</strong>
+                              <span style={catChip}>{d.categoria}</span>
+                              <span style={estadoBadge(item.estado)}>{item.estado.replace('_',' ').toUpperCase()}</span>
+                            </div>
+                            {item.tratamiento && <p style={itemSub}>Tratamiento: {item.tratamiento}</p>}
+                          </div>
+                          <button type="button" onClick={()=>setUserCondiciones(userCondiciones.filter(c=>c.condicionId!==item.condicionId))} style={removeBtn}>×</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+              }
+              <NavRow onBack={()=>setCurrentStep(2)} onNext={()=>{setErrorMessage(null);setCurrentStep(4)}} nextLabel="Continuar a Fármacos →"/>
+            </div>
+          )}
+
+          {/* ══ PASO 4: Medicamentos ══ */}
+          {currentStep === 4 && (
+            <div>
+              <StepTitle stepIndex={3} icon={
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+                </svg>
+              }/>
+
+              <div style={builderBox}>
+                <SectionLabel text="Agregar medicamento de uso crónico"/>
+                <div style={grid2inner}>
+
+                  <div style={{ gridColumn:'span 2', display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Medicamento del catálogo</label>
+                    <CatalogSelect
+                      items={catalogoMedicamentos}
+                      value={selMedId}
+                      onChange={setSelMedId}
+                      placeholder="— Buscar medicamento —"
+                      labelKey="nombre_generico"
+                      subtitleKey="nombre_comercial"
+                      onRequestAdd={(nombre) => { setAddingMed(nombre); setSelMedId('') }}/>
+                    {selMedId && (() => {
+                      const m = catalogoMedicamentos.find(x=>x.id===selMedId)
+                      return m ? (
+                        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginTop:'4px' }}>
+                          {m.nombre_comercial && <span style={metaChip}>Comercial: {m.nombre_comercial}</span>}
+                          {m.categoria && <span style={catChip}>{m.categoria}</span>}
+                        </div>
+                      ) : null
+                    })()}
+                  </div>
+
+                  {addingMed !== null && (
+                    <div style={{ gridColumn:'span 2' }}>
+                      <AddToCatalogForm
+                        nombre={addingMed}
+                        categories={CAT_MEDICAMENTOS}
+                        extraFields={[{ key:'nombre_comercial', label:'Nombre Comercial', placeholder:'ej. Glucophage, Insulatard', required:false }]}
+                        onConfirm={confirmAddMed}
+                        onCancel={()=>setAddingMed(null)}
+                        loading={addingCatLoading}/>
+                    </div>
+                  )}
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Dosis</label>
+                    <input type="text" placeholder="ej. 850 mg, 10 UI, 0.5 mg"
+                      value={medDosis} onChange={e=>setMedDosis(e.target.value)} style={legacyInput} className="rms-input"/>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Frecuencia</label>
+                    <CustomSelect options={FRECUENCIAS} value={medFrecSel} onChange={setMedFrecSel}
+                      icon={Ic.clock} placeholder="— Seleccionar frecuencia —"/>
+                    {medFrecSel === 'personalizado' && (
+                      <input autoFocus type="text" placeholder="ej. Cada 48 horas, solo lunes y jueves"
+                        value={medFrecCustom} onChange={e=>setMedFrecCustom(e.target.value)}
+                        style={{ ...legacyInput, marginTop:'6px' }} className="rms-input"/>
+                    )}
+                  </div>
+
+                  <div style={{ gridColumn:'span 2', display:'flex', flexDirection:'column', gap:'5px' }}>
+                    <label style={labelStyle}>Observaciones <span style={{ color:theme.colors.textLight, fontWeight:'400' }}>(opcional)</span></label>
+                    <input type="text" placeholder="ej. No suspender bajo ninguna circunstancia"
+                      value={medNotas} onChange={e=>setMedNotas(e.target.value)} style={legacyInput} className="rms-input"/>
+                  </div>
+
+                  <AddButton onClick={addMed} label="Agregar medicamento a la lista"/>
+                </div>
+              </div>
+
+              <ListHeader count={userMeds.length} label="medicamentos registrados"/>
+              {userMeds.length === 0
+                ? <EmptyState icon={Ic.noMed} title="Sin medicamentos de uso crónico"
+                    desc="Si no toma ningún medicamento de forma regular, puede continuar al siguiente paso."/>
+                : <div style={listStyle}>
+                    {userMeds.map((item,idx) => (
+                      <div key={idx} style={medCard}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                            <strong style={itemTitle}>{item.nombre}</strong>
+                            {item.categoria && <span style={catChip}>{item.categoria}</span>}
+                            {item.nombreComercial && <span style={{ fontSize:'11.5px', color:theme.colors.textMedium, fontWeight:'500' }}>· {item.nombreComercial}</span>}
+                          </div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                            <span style={metaChip}>Dosis: {item.dosis}</span>
+                            <span style={metaChip}>Frecuencia: {item.frecuencia}</span>
+                          </div>
+                          {item.notas && <p style={itemSub}>{item.notas}</p>}
+                        </div>
+                        <button type="button" onClick={()=>setUserMeds(userMeds.filter((_,i)=>i!==idx))} style={removeBtn}>×</button>
+                      </div>
+                    ))}
+                  </div>
+              }
+              <NavRow onBack={()=>setCurrentStep(3)} onNext={()=>{setErrorMessage(null);setCurrentStep(5)}} nextLabel="Continuar a Contactos →"/>
+            </div>
+          )}
+
+          {/* ══ PASO 5: Contactos ══ */}
+          {currentStep === 5 && (
+            <div>
+              <StepTitle stepIndex={4} icon={
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={theme.colors.primary} strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/>
+                </svg>
+              }/>
+
+              <p style={{ fontSize:'13px', color:theme.colors.textMedium, marginBottom:'20px', lineHeight:'1.5' }}>
+                Registre personas de confianza a quienes el paramédico podrá contactar directamente.{' '}
+                <strong style={{ color:theme.colors.primary }}>Arrastre los recuadros</strong> para cambiar el orden de prioridad.
+              </p>
+
+              <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                {userContactos.map((c, i) => {
+                  const cErrs    = validateContact(c)
+                  const isDragging = dragIdx === i
+                  const isDragOver = dragOverIdx === i && dragIdx !== i
+
+                  return (
+                    <div key={i}
+                      draggable
+                      onDragStart={e=>handleDragStart(e,i)}
+                      onDragOver={e=>handleDragOver(e,i)}
+                      onDrop={e=>handleDrop(e,i)}
+                      onDragEnd={handleDragEnd}
+                      style={{
+                        ...contactoBox,
+                        position:    'relative',
+                        zIndex:      userContactos.length - i,
+                        opacity:     isDragging  ? 0.45 : 1,
+                        borderColor: isDragOver  ? theme.colors.primary : theme.colors.border,
+                        boxShadow:   isDragOver  ? `0 0 0 2px ${theme.colors.primaryBorder}, ${theme.shadows.card}` : theme.shadows.card,
+                        transform:   isDragOver  ? 'scale(1.01)' : 'scale(1)',
+                        transition:  'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
+                      }}>
+
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                          <div style={{ cursor:'grab', display:'flex', alignItems:'center', padding:'4px 6px',
+                            backgroundColor:theme.colors.bgTertiary, borderRadius:'6px',
+                            border:`1px solid ${theme.colors.border}` }}>
+                            {Ic.drag}
+                          </div>
+                          <span style={priorBadge}>Prioridad {c.ordenPrioridad}</span>
+                        </div>
+                        {userContactos.length > 1 && (
+                          <button type="button" onClick={()=>removeContacto(i)} style={removeLinkBtn}>Eliminar</button>
+                        )}
+                      </div>
+
+                      <div style={contactoGrid}>
+                        {/* Nombre */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                          <label style={labelStyle}>Nombre <span style={{ color:theme.colors.primary }}>*</span></label>
+                          <div style={{ position:'relative' }}>
+                            <input type="text" placeholder="ej. María Pérez" value={c.nombre}
+                              onChange={e=>setContacto(i,'nombre',e.target.value.replace(/\d/g,''))}
+                              onBlur={()=>touchC(i,'nombre')}
+                              style={{ ...legacyInput,
+                                borderColor: touchedC[`${i}_nombre`] && cErrs.nombre   ? '#EF4444'
+                                           : touchedC[`${i}_nombre`] && c.nombre       ? '#10B981'
+                                           : theme.colors.border,
+                                paddingRight: touchedC[`${i}_nombre`] ? '34px' : '14px',
+                              }} className="rms-input"/>
+                            {touchedC[`${i}_nombre`] && (
+                              <span style={fieldIconStyle}>{cErrs.nombre ? Ic.error : c.nombre ? Ic.check : null}</span>
+                            )}
+                          </div>
+                          {touchedC[`${i}_nombre`] && cErrs.nombre && <span style={fieldErrStyle}>{cErrs.nombre}</span>}
+                        </div>
+
+                        {/* Teléfono */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                          <label style={labelStyle}>Teléfono <span style={{ color:theme.colors.primary }}>*</span></label>
+                          <div style={{ position:'relative' }}>
+                            <input type="tel" placeholder="ej. 987654321" value={c.telefono}
+                              onChange={e=>setContacto(i,'telefono',e.target.value.replace(/\D/g,'').slice(0,9))}
+                              onBlur={()=>touchC(i,'telefono')}
+                              style={{ ...legacyInput,
+                                borderColor: touchedC[`${i}_telefono`] && cErrs.telefono       ? '#EF4444'
+                                           : touchedC[`${i}_telefono`] && c.telefono.length===9 ? '#10B981'
+                                           : theme.colors.border,
+                                paddingRight: touchedC[`${i}_telefono`] ? '34px' : '14px',
+                              }} className="rms-input"/>
+                            {touchedC[`${i}_telefono`] && (
+                              <span style={fieldIconStyle}>{cErrs.telefono ? Ic.error : c.telefono.length===9 ? Ic.check : null}</span>
+                            )}
+                          </div>
+                          {touchedC[`${i}_telefono`] && cErrs.telefono && <span style={fieldErrStyle}>{cErrs.telefono}</span>}
+                        </div>
+
+                        {/* Relación */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                          <label style={labelStyle}>Parentesco</label>
+                          <CustomSelect options={RELACIONES} value={c.relacion}
+                            onChange={v=>setContacto(i,'relacion',v)} icon={Ic.relation}/>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {userContactos.length < 5 && (
+                <button type="button" onClick={addContacto} style={addDashedBtn} className="rms-add-dashed">
+                  + Agregar otro contacto de emergencia
+                </button>
+              )}
+
+              <NavRow onBack={()=>setCurrentStep(4)} onNext={handleSubmit}
+                nextLabel={loading ? 'Guardando…' : 'Finalizar y Crear Código QR'}
+                nextDisabled={loading} nextGreen/>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
 }
 
-const statusBadgeStyle = (status) => ({
-  fontSize: '10px',
-  fontWeight: '700',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  backgroundColor: status === 'activa' ? theme.colors.primary : theme.colors.success,
-  color: '#FFFFFF',
-})
-
-const removeBadgeStyle = {
-  background: 'transparent',
-  border: 'none',
-  fontSize: '20px',
-  color: theme.colors.textLight,
-  cursor: 'pointer',
-  padding: '0 4px',
-  fontWeight: '300',
-  lineHeight: '1',
+/* ─── Sub-componentes pequeños ─────────────────────────────────────── */
+function SectionLabel({ text }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px' }}>
+      <div style={{ width:'3px', height:'14px', backgroundColor:theme.colors.primary, borderRadius:'2px' }}/>
+      <span style={{ fontSize:'11.5px', fontWeight:'700', color:theme.colors.textMedium, textTransform:'uppercase', letterSpacing:'0.7px' }}>
+        {text}
+      </span>
+    </div>
+  )
 }
 
-const contactoBoxStyle = {
-  padding: '20px',
-  backgroundColor: theme.colors.bgSecondary,
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.borderRadius.md,
+function ListHeader({ count, label }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
+      <span style={{ fontSize:'12px', fontWeight:'800', color:theme.colors.textDark, textTransform:'uppercase', letterSpacing:'0.6px' }}>{label}</span>
+      <span style={{ fontSize:'11px', fontWeight:'700', color:count>0?'#fff':theme.colors.textLight,
+        backgroundColor:count>0?theme.colors.primary:theme.colors.bgTertiary,
+        padding:'1px 7px', borderRadius:'9999px' }}>{count}</span>
+    </div>
+  )
 }
 
-const contactoHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '16px',
-}
+/* ─── CSS global ───────────────────────────────────────────────────── */
+const css = `
+  @keyframes spin    { to { transform:rotate(360deg); } }
+  @keyframes rmsFade { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes rmsBlink{ 0%,100%{opacity:1;}50%{opacity:0;} }
 
-const contactoPriorityStyle = {
-  fontSize: '12px',
-  fontWeight: '700',
-  color: theme.colors.primary,
-  backgroundColor: theme.colors.primaryLight,
-  padding: '4px 10px',
-  borderRadius: theme.borderRadius.sm,
-}
+  .rms-fade   { animation: rmsFade 0.35s ease; }
+  .rms-cursor { animation: rmsBlink 0.9s step-end infinite; font-weight:300; margin-left:1px; }
+  .rms-input  { transition: border-color 0.17s ease, box-shadow 0.17s ease !important; }
+  .rms-input:focus { outline:none !important; }
 
-const removeContactoBtnStyle = {
-  background: 'transparent',
-  border: 'none',
-  color: theme.colors.primary,
-  fontSize: '12px',
-  fontWeight: '600',
-  cursor: 'pointer',
-}
+  /* Paso 1 submit */
+  .rms-btn-primary { transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important; }
+  .rms-btn-primary:hover:not(:disabled) { background-color:#B91C1C !important; box-shadow:0 6px 20px rgba(220,38,38,0.30) !important; transform:translateY(-1px); }
+  .rms-btn-ready   { background-color:#DC2626 !important; transition:all 0.22s cubic-bezier(0.4,0,0.2,1) !important; }
+  .rms-btn-ready:hover:not(:disabled) { background-color:#059669 !important; box-shadow:0 6px 22px rgba(5,150,105,0.28) !important; transform:translateY(-1px); }
 
-const contactoFieldsStyle = {
-  display: 'grid',
-  gridTemplateColumns: '1.5fr 1fr 1fr',
-  gap: '16px',
-}
+  /* Continuar (pasos 2-4): siempre verde al hover */
+  .rms-btn-continue { transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important; }
+  .rms-btn-continue:hover:not(:disabled) { background-color:#059669 !important; box-shadow:0 6px 22px rgba(5,150,105,0.28) !important; transform:translateY(-1px); }
+  .rms-btn-continue:active:not(:disabled) { transform:translateY(0); }
 
-const addContactoBtnStyle = {
-  backgroundColor: 'transparent',
-  color: theme.colors.textMedium,
-  border: `1px dashed ${theme.colors.border}`,
-  padding: '14px',
-  borderRadius: theme.borderRadius.md,
-  fontSize: '13px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: theme.transitions.fast,
-  marginTop: '16px',
-  width: '100%',
-  textAlign: 'center',
-}
+  /* Finalizar */
+  .rms-btn-finish { background-color:#059669 !important; transition:all 0.2s ease !important; }
+  .rms-btn-finish:hover:not(:disabled) { background-color:#047857 !important; box-shadow:0 6px 20px rgba(5,150,105,0.28) !important; transform:translateY(-1px); }
 
-const buttonRowStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginTop: '36px',
-  borderTop: `1px solid ${theme.colors.border}`,
-  paddingTop: '24px',
-}
+  /* Volver */
+  .rms-btn-sec { transition:all 0.18s ease !important; }
+  .rms-btn-sec:hover  { background-color:#E2E8F0 !important; transform:translateY(-1px); }
+  .rms-btn-sec:active { transform:translateY(0) !important; }
 
-const buttonPrimaryStyle = {
-  backgroundColor: theme.colors.primary,
-  color: '#FFFFFF',
-  border: 'none',
-  padding: '12px 28px',
-  borderRadius: theme.borderRadius.md,
-  fontSize: '14px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.15)',
-  transition: theme.transitions.default,
-}
+  /* Agregar */
+  .rms-add-btn { transition:all 0.18s ease !important; }
+  .rms-add-btn:hover  { background-color:#FEF2F2 !important; border-color:#DC2626 !important; transform:translateY(-1px); }
+  .cat-add-new-btn { transition:background-color 0.14s ease !important; }
+  .cat-add-new-btn:hover  { background-color:#FEF2F2 !important; }
+  .cat-add-new-btn:active { background-color:#FEE2E2 !important; }
+  .rms-add-btn:active { transform:translateY(0) !important; }
 
-const finishButtonStyle = {
-  ...buttonPrimaryStyle,
-  backgroundColor: theme.colors.success,
-  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)',
-}
+  /* Agregar contacto dashed */
+  .rms-add-dashed { transition:all 0.18s ease !important; }
+  .rms-add-dashed:hover { border-color:#DC2626 !important; color:#DC2626 !important; background-color:#FEF2F2 !important; }
+`
 
-const buttonSecondaryStyle = {
-  backgroundColor: theme.colors.bgTertiary,
-  color: theme.colors.textMedium,
-  border: 'none',
-  padding: '12px 28px',
-  borderRadius: theme.borderRadius.md,
-  fontSize: '14px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: theme.transitions.default,
-}
+/* ─── Estilos ──────────────────────────────────────────────────────── */
+const pageStyle = { maxWidth:'820px', margin:'0 auto', paddingBottom:'48px' }
 
-const disabledButtonStyle = {
-  ...finishButtonStyle,
-  backgroundColor: theme.colors.textLight,
-  cursor: 'not-allowed',
-  boxShadow: 'none',
-}
+const titleBoxStyle = { display:'inline-flex', alignItems:'center', gap:'10px', backgroundColor:theme.colors.primary, padding:'10px 24px', borderRadius:theme.borderRadius.md, marginBottom:'12px', boxShadow:'0 4px 16px rgba(220,38,38,0.22)' }
+const titleBoxText  = { fontSize:'20px', fontWeight:'800', color:'#fff', letterSpacing:'-0.3px', minWidth:'240px', textAlign:'left' }
 
-const errorContainerStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '12px 16px',
-  backgroundColor: theme.colors.dangerLight,
-  border: `1px solid ${theme.colors.primaryBorder}`,
-  borderRadius: theme.borderRadius.md,
-  color: theme.colors.primary,
-  fontSize: '13.5px',
-  fontWeight: '500',
-  marginBottom: '24px',
-}
+const stepperWrapStyle = { display:'flex', alignItems:'flex-start', justifyContent:'center' }
+const stepItemStyle    = { display:'flex', flexDirection:'column', alignItems:'center', gap:'5px', flex:1, position:'relative' }
+const connectorStyle   = (f) => ({ position:'absolute', top:'13px', right:'50%', left:'-50%', height:'2px', backgroundColor:f?theme.colors.primary:theme.colors.border, transition:'background-color 0.3s ease', zIndex:0 })
+const stepCircleStyle  = (done, active) => ({ width:'26px', height:'26px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:done?'#10B981':active?theme.colors.primary:theme.colors.bgTertiary, border:`2px solid ${done?'#10B981':active?theme.colors.primary:theme.colors.border}`, transition:'all 0.25s ease', position:'relative', zIndex:1, boxShadow:active&&!done?'0 0 0 4px rgba(220,38,38,0.12)':'none' })
+const stepLblStyle     = (done, active) => ({ fontSize:'10px', fontWeight:done||active?'700':'500', color:done?'#059669':active?theme.colors.primary:theme.colors.textLight, textAlign:'center', whiteSpace:'nowrap', transition:'color 0.25s ease' })
+
+const cardStyle = { backgroundColor:theme.colors.bgPrimary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.lg, padding:'32px 36px', boxShadow:theme.shadows.card }
+
+const stepTitleContainerStyle = { display:'flex', alignItems:'center', gap:'10px', borderBottom:`2px solid ${theme.colors.border}`, paddingBottom:'14px', marginBottom:'24px' }
+const stepTitleIconBoxStyle   = { display:'flex', alignItems:'center', backgroundColor:theme.colors.primaryLight, padding:'6px', borderRadius:'8px', flexShrink:0 }
+const stepTitleTextStyle      = { fontSize:'15px', fontWeight:'700', color:theme.colors.textDark, margin:0 }
+
+const grid2      = { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'18px' }
+const grid2inner = { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }
+
+const labelStyle     = { fontSize:'12px', fontWeight:'600', color:theme.colors.textMedium }
+const fieldIconStyle = { position:'absolute', right:'11px', top:'50%', transform:'translateY(-50%)', display:'flex', alignItems:'center', pointerEvents:'none' }
+const fieldErrStyle  = { fontSize:'11px', color:'#EF4444', fontWeight:'500' }
+
+const baseInput = { width:'100%', padding:'10px 14px', border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.md, fontSize:'13.5px', color:theme.colors.textDark, outline:'none', boxShadow:theme.shadows.input, fontFamily:theme.fonts.main, boxSizing:'border-box', backgroundColor:theme.colors.bgPrimary }
+const legacyInput   = { ...baseInput }
+const textareaStyle = { ...baseInput, minHeight:'88px', resize:'vertical', paddingRight:'14px' }
+
+const iconLeft  = { position:'absolute', left:'11px', top:'50%', transform:'translateY(-50%)', display:'flex', alignItems:'center', pointerEvents:'none' }
+const unitBadge = { position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', fontSize:'11px', fontWeight:'700', color:theme.colors.textLight, backgroundColor:theme.colors.bgTertiary, padding:'2px 6px', borderRadius:'4px', pointerEvents:'none' }
+const miniGreenLabel = { fontSize:'11px', color:'#10B981', fontWeight:'600', display:'flex', alignItems:'center', gap:'4px' }
+
+const checkWrap = { display:'flex', alignItems:'center', gap:'10px', padding:'12px 14px', backgroundColor:theme.colors.bgSecondary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.md }
+const cbStyle   = { width:'15px', height:'15px', cursor:'pointer', accentColor:theme.colors.primary, flexShrink:0 }
+
+const builderBox    = { padding:'18px 20px', backgroundColor:theme.colors.bgSecondary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.md, marginBottom:'20px' }
+const addCatFormStyle = { padding:'14px 16px', backgroundColor:theme.colors.primaryLight, border:`1.5px dashed ${theme.colors.primaryBorder}`, borderRadius:theme.borderRadius.md, marginBottom:'4px' }
+
+const emptyCardStyle  = { padding:'32px 24px', textAlign:'center', backgroundColor:theme.colors.bgSecondary, border:`1px dashed ${theme.colors.border}`, borderRadius:theme.borderRadius.md, marginBottom:'28px' }
+const emptyTitleStyle = { fontSize:'14px', fontWeight:'700', color:theme.colors.textDark, margin:'0 0 6px' }
+const emptyDescStyle  = { fontSize:'12.5px', color:theme.colors.textLight, fontWeight:'500', margin:'0 0 14px', lineHeight:'1.5' }
+const emptyTagStyle   = { display:'inline-flex', alignItems:'center', gap:'6px', fontSize:'12px', fontWeight:'600', color:'#059669', backgroundColor:'#ECFDF5', border:'1px solid #A7F3D0', padding:'5px 12px', borderRadius:'999px' }
+
+const listStyle = { display:'flex', flexDirection:'column', gap:'10px', marginBottom:'24px' }
+
+const alergiaCard   = (s) => ({ position:'relative', padding:'14px 44px 14px 16px', backgroundColor:s?theme.colors.dangerLight:theme.colors.warningLight, border:`1px solid ${s?theme.colors.primaryBorder:'#FDE68A'}`, borderRadius:theme.borderRadius.md })
+const condCard      = { position:'relative', display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'14px 16px', backgroundColor:theme.colors.bgSecondary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.md }
+const medCard       = { ...condCard, backgroundColor:'#F8FAFC', border:'1px solid #CBD5E1' }
+
+const itemTitle     = { fontSize:'13.5px', fontWeight:'700', color:theme.colors.textDark }
+const itemSub       = { fontSize:'12px', color:theme.colors.textMedium, margin:'6px 0 0', lineHeight:'1.4' }
+const catChip       = { fontSize:'10px', fontWeight:'800', color:'#0369A1', backgroundColor:'#E0F2FE', border:'1px solid #BAE6FD', borderRadius:'4px', padding:'2px 6px', textTransform:'uppercase' }
+const metaChip      = { fontSize:'11px', fontWeight:'600', color:'#334155', backgroundColor:'#fff', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'3px 8px' }
+
+const severityDot   = (s) => ({ width:'8px', height:'8px', borderRadius:'50%', flexShrink:0, backgroundColor:s==='anafilaxia'?'#DC2626':s==='severa'?'#EF4444':s==='moderada'?'#F59E0B':'#10B981' })
+const severityBadge = (s) => ({ fontSize:'10px', fontWeight:'700', padding:'2px 7px', borderRadius:'4px', backgroundColor:(s==='severa'||s==='anafilaxia')?theme.colors.primary:theme.colors.warning, color:'#fff' })
+const estadoBadge   = (s) => ({ fontSize:'10px', fontWeight:'700', padding:'2px 7px', borderRadius:'4px', backgroundColor:s==='activa'?theme.colors.primary:s==='controlada'?'#059669':'#6366F1', color:'#fff' })
+const removeBtn     = { position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)', background:'transparent', border:'none', fontSize:'20px', color:theme.colors.textLight, cursor:'pointer', padding:'0 2px', fontWeight:'300', lineHeight:'1' }
+
+const contactoBox   = { padding:'18px', backgroundColor:theme.colors.bgSecondary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.md }
+const contactoGrid  = { display:'grid', gridTemplateColumns:'1.5fr 1fr 1.2fr', gap:'12px' }
+const priorBadge    = { fontSize:'12px', fontWeight:'700', color:theme.colors.primary, backgroundColor:theme.colors.primaryLight, padding:'3px 10px', borderRadius:theme.borderRadius.sm }
+const removeLinkBtn = { background:'transparent', border:'none', color:theme.colors.primary, fontSize:'12px', fontWeight:'600', cursor:'pointer' }
+const addDashedBtn  = { backgroundColor:'transparent', color:theme.colors.textMedium, border:`1px dashed ${theme.colors.border}`, padding:'13px', borderRadius:theme.borderRadius.md, fontSize:'13px', fontWeight:'600', cursor:'pointer', marginTop:'14px', width:'100%', fontFamily:theme.fonts.main }
+
+const buttonRowStyle = { display:'flex', justifyContent:'space-between', marginTop:'28px', borderTop:`1px solid ${theme.colors.border}`, paddingTop:'20px' }
+const btnPriStyle    = { backgroundColor:theme.colors.primary, color:'#fff', border:'none', padding:'11px 28px', borderRadius:theme.borderRadius.md, fontSize:'14px', fontWeight:'700', cursor:'pointer', boxShadow:'0 4px 12px rgba(220,38,38,0.15)', transition:theme.transitions.default, fontFamily:theme.fonts.main }
+const btnSecStyle    = { backgroundColor:theme.colors.bgTertiary, color:theme.colors.textMedium, border:'none', padding:'11px 24px', borderRadius:theme.borderRadius.md, fontSize:'14px', fontWeight:'600', cursor:'pointer', transition:theme.transitions.default, fontFamily:theme.fonts.main }
+const btnDisStyle    = { ...btnPriStyle, backgroundColor:theme.colors.textLight, cursor:'not-allowed', boxShadow:'none' }
+
+const errBannerStyle = { display:'flex', alignItems:'center', gap:'10px', padding:'12px 16px', marginBottom:'20px', backgroundColor:theme.colors.dangerLight, border:`1px solid ${theme.colors.primaryBorder}`, borderRadius:theme.borderRadius.md, color:theme.colors.primary, fontSize:'13px', fontWeight:'500' }
+
+/* CustomSelect / CatalogSelect shared styles */
+const cssBtnStyle = (open, valid) => ({ display:'flex', alignItems:'center', gap:'7px', width:'100%', padding:'10px 11px', border:`1px solid ${open?theme.colors.primary:valid?'#10B981':theme.colors.border}`, borderRadius:theme.borderRadius.md, backgroundColor:theme.colors.bgPrimary, cursor:'pointer', boxShadow:open?'0 0 0 3px rgba(220,38,38,0.10)':valid?'0 0 0 3px rgba(16,185,129,0.08)':theme.shadows.input, transition:'all 0.17s ease', fontFamily:theme.fonts.main, boxSizing:'border-box' })
+const dropStyle   = { position:'absolute', top:'calc(100% + 4px)', left:0, right:0, backgroundColor:theme.colors.bgPrimary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.md, boxShadow:'0 8px 24px rgba(15,23,42,0.10)', zIndex:50, overflow:'hidden' }
+const optStyle    = (sel) => ({ display:'flex', alignItems:'center', gap:'9px', width:'100%', padding:'9px 13px', border:'none', cursor:'pointer', backgroundColor:sel?theme.colors.primaryLight:'transparent', transition:'background-color 0.14s ease', fontFamily:theme.fonts.main, boxSizing:'border-box' })

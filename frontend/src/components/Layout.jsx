@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { supabase } from '../../supabaseClient'
+import { getUser, removeToken, isAuthenticated } from '../api'
 import { theme } from '../styles/theme'
 
 export default function Layout({ children }) {
@@ -9,21 +9,13 @@ export default function Layout({ children }) {
   const location = useLocation()
 
   useEffect(() => {
-    // Check current user state
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
+    setUser(isAuthenticated() ? getUser() : null)
+  }, [location.pathname])
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleLogout = () => {
+    removeToken()
     navigate('/login')
+    setUser(null)
   }
 
   // Check if we are on the emergency page or dashboard, which manage their own layout
@@ -40,6 +32,14 @@ export default function Layout({ children }) {
 
   return (
     <div style={containerStyle}>
+      <style>{`
+        .nav-login-btn { transition: background-color 0.2s ease, color 0.2s ease !important; }
+        .nav-login-btn:hover { background-color: #FEF2F2 !important; color: #DC2626 !important; }
+        .nav-signup-btn { transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important; }
+        .nav-signup-btn:hover { background-color: #B91C1C !important; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(220,38,38,0.3) !important; }
+        .nav-logout-btn { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important; }
+        .nav-logout-btn:hover { background-color: #FEF2F2 !important; border-color: #FCA5A5 !important; color: #DC2626 !important; }
+      `}</style>
       {/* HEADER */}
       <header style={headerStyle}>
         <div style={navContainerStyle} className="nav-container">
@@ -66,20 +66,20 @@ export default function Layout({ children }) {
                 </Link>
                 <div style={userBadgeStyle}>
                   <div style={avatarStyle}>
-                    {user.email?.charAt(0).toUpperCase()}
+                    {(user.nombre_completo || user.email || '?').charAt(0).toUpperCase()}
                   </div>
-                  <span style={emailTextStyle} className="nav-email-text" title={user.email}>{user.email?.split('@')[0]}</span>
+                  <span style={emailTextStyle} className="nav-email-text" title={user.email}>{user.nombre_completo?.split(' ')[0] || user.email?.split('@')[0]}</span>
                 </div>
-                <button onClick={handleLogout} style={logoutButtonStyle}>
+                <button onClick={handleLogout} className="nav-logout-btn" style={logoutButtonStyle}>
                   Salir
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" style={linkStyle}>
+                <Link to="/login" className="nav-login-btn" style={linkStyle}>
                   Iniciar Sesión
                 </Link>
-                <Link to="/register" style={signUpButtonStyle}>
+                <Link to="/register" className="nav-signup-btn" style={signUpButtonStyle}>
                   Registrarse
                 </Link>
               </>

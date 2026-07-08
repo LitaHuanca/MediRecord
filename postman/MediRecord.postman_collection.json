@@ -1,0 +1,626 @@
+{
+  "info": {
+    "name": "MediRecord API",
+    "description": "Colección de pruebas para todos los endpoints de MediRecord. Ejecutar con Newman: newman run MediRecord.postman_collection.json -e MediRecord.postman_environment.json",
+    "_postman_id": "medirecord-sqa-grupo5-2026",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register - registro exitoso",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Genera un email único para cada ejecución para evitar conflicto de unicidad",
+                  "const ts = Date.now();",
+                  "pm.collectionVariables.set('test_email', `newman_${ts}@medirecord.test`);",
+                  "pm.collectionVariables.set('test_doc', String(ts).slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Respuesta tiene access_token', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('access_token');",
+                  "    pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set('auth_token', body.access_token);",
+                  "});",
+                  "",
+                  "pm.test('Respuesta tiene nombre_completo', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('nombre_completo');",
+                  "    pm.expect(body.nombre_completo).to.include('Newman');",
+                  "});",
+                  "",
+                  "pm.test('Respuesta tiene email', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.email).to.equal(pm.collectionVariables.get('test_email'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Newman\",\n  \"apellido_paterno\": \"Test\",\n  \"apellido_materno\": \"SQA\",\n  \"tipo_documento\": \"DNI\",\n  \"numero_documento\": \"{{test_doc}}\",\n  \"email\": \"{{test_email}}\",\n  \"password\": \"TestPass123!\",\n  \"telefono\": \"999888777\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /auth/register - email duplicado retorna 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 por email duplicado', () => pm.response.to.have.status(409));",
+                  "",
+                  "pm.test('Mensaje de error correcto', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.detail).to.include('registrado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Newman\",\n  \"apellido_paterno\": \"Test\",\n  \"apellido_materno\": \"SQA\",\n  \"tipo_documento\": \"DNI\",\n  \"numero_documento\": \"{{test_doc}}\",\n  \"email\": \"{{test_email}}\",\n  \"password\": \"TestPass123!\",\n  \"telefono\": \"999888777\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login - credenciales correctas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Devuelve access_token JWT', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.access_token).to.be.a('string');",
+                  "    // JWT tiene 3 partes separadas por punto",
+                  "    pm.expect(body.access_token.split('.')).to.have.lengthOf(3);",
+                  "    pm.collectionVariables.set('auth_token', body.access_token);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type es JSON', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Tiempo de respuesta < 3000ms', () => {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"TestPass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login - credenciales incorrectas retorna 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 por credenciales incorrectas', () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test('Body tiene detail', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"CONTRASENA_INCORRECTA\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /auth/me - token válido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Devuelve datos del usuario autenticado', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body).to.have.property('email');",
+                  "    pm.expect(body.email).to.equal(pm.collectionVariables.get('test_email'));",
+                  "    pm.expect(body).to.have.property('nombre_completo');",
+                  "    pm.expect(body).to.have.property('numero_documento');",
+                  "    pm.collectionVariables.set('user_id', body.id);",
+                  "});",
+                  "",
+                  "pm.test('No expone password_hash', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.not.have.property('password_hash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{auth_token}}" }],
+            "url": "{{base_url}}/auth/me"
+          }
+        },
+        {
+          "name": "GET /auth/me - sin token retorna 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 sin Authorization header', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogos",
+      "item": [
+        {
+          "name": "GET /api/catalogs - retorna alergias, condiciones, medicamentos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Tiene las tres colecciones', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('alergias');",
+                  "    pm.expect(body).to.have.property('condiciones');",
+                  "    pm.expect(body).to.have.property('medicamentos');",
+                  "    pm.expect(body.alergias).to.be.an('array');",
+                  "    pm.expect(body.condiciones).to.be.an('array');",
+                  "    pm.expect(body.medicamentos).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Cada alergia tiene id, nombre y categoria', () => {",
+                  "    const body = pm.response.json();",
+                  "    if (body.alergias.length > 0) {",
+                  "        const a = body.alergias[0];",
+                  "        pm.expect(a).to.have.property('id');",
+                  "        pm.expect(a).to.have.property('nombre');",
+                  "        pm.expect(a).to.have.property('categoria');",
+                  "        pm.collectionVariables.set('alergia_id', a.id);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Cada condición tiene id, nombre y categoria', () => {",
+                  "    const body = pm.response.json();",
+                  "    if (body.condiciones.length > 0) {",
+                  "        const c = body.condiciones[0];",
+                  "        pm.expect(c).to.have.property('id');",
+                  "        pm.expect(c).to.have.property('nombre');",
+                  "        pm.expect(c).to.have.property('categoria');",
+                  "        pm.collectionVariables.set('condicion_id', c.id);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('No requiere autenticación (endpoint público)', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/catalogs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ficha Médica",
+      "item": [
+        {
+          "name": "GET /api/ficha - ficha inicial (perfil vacío)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Estructura de FichaOut correcta', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('usuario_id');",
+                  "    pm.expect(body).to.have.property('nombre_completo');",
+                  "    pm.expect(body).to.have.property('numero_documento');",
+                  "    pm.expect(body).to.have.property('alergias');",
+                  "    pm.expect(body).to.have.property('condiciones');",
+                  "    pm.expect(body).to.have.property('medicamentos');",
+                  "    pm.expect(body).to.have.property('contactos');",
+                  "});",
+                  "",
+                  "pm.test('Arrays vacíos en perfil nuevo', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.alergias).to.be.an('array');",
+                  "    pm.expect(body.condiciones).to.be.an('array');",
+                  "    pm.expect(body.medicamentos).to.be.an('array');",
+                  "    pm.expect(body.contactos).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('token_qr presente (se crea en registro)', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('token_qr');",
+                  "    if (body.token_qr) {",
+                  "        pm.collectionVariables.set('qr_token', body.token_qr);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{auth_token}}" }],
+            "url": "{{base_url}}/api/ficha"
+          }
+        },
+        {
+          "name": "PUT /api/ficha - upsert con datos completos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Persiste tipo_sangre', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.tipo_sangre).to.equal('O+');",
+                  "});",
+                  "",
+                  "pm.test('Persiste sexo', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.sexo).to.equal('masculino');",
+                  "});",
+                  "",
+                  "pm.test('Persiste teléfono en usuario', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.telefono).to.equal('987654321');",
+                  "});",
+                  "",
+                  "pm.test('Alergia guardada correctamente', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.alergias).to.have.lengthOf.at.least(1);",
+                  "    pm.expect(body.alergias[0].severidad).to.equal('leve');",
+                  "});",
+                  "",
+                  "pm.test('Condición guardada correctamente', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.condiciones).to.have.lengthOf.at.least(1);",
+                  "    pm.expect(body.condiciones[0].estado).to.equal('activa');",
+                  "});",
+                  "",
+                  "pm.test('Contacto de emergencia guardado', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.contactos).to.have.lengthOf.at.least(1);",
+                  "    pm.expect(body.contactos[0].nombre).to.equal('Juan Pérez');",
+                  "});",
+                  "",
+                  "pm.test('token_qr presente tras upsert', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.token_qr).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set('qr_token', body.token_qr);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/ficha",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"987654321\",\n  \"tipo_sangre\": \"O+\",\n  \"sexo\": \"masculino\",\n  \"fecha_nacimiento\": \"1995-06-15\",\n  \"donante_organos\": true,\n  \"peso_kg\": 70.5,\n  \"altura_cm\": 175,\n  \"notas_adicionales\": \"Ninguna nota especial\",\n  \"alergias\": [\n    {\n      \"alergia_id\": \"{{alergia_id}}\",\n      \"severidad\": \"leve\",\n      \"reaccion\": \"Urticaria leve\"\n    }\n  ],\n  \"condiciones\": [\n    {\n      \"condicion_id\": \"{{condicion_id}}\",\n      \"estado\": \"activa\",\n      \"tratamiento\": \"Control médico mensual\"\n    }\n  ],\n  \"medicamentos\": [],\n  \"contactos\": [\n    {\n      \"nombre\": \"Juan Pérez\",\n      \"telefono\": \"998877665\",\n      \"relacion\": \"familiar\",\n      \"orden_prioridad\": 1\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/ficha - verificar persistencia tras upsert",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Los datos del upsert previo persisten', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.tipo_sangre).to.equal('O+');",
+                  "    pm.expect(body.sexo).to.equal('masculino');",
+                  "    pm.expect(body.donante_organos).to.equal(true);",
+                  "    pm.expect(body.peso_kg).to.equal(70.5);",
+                  "    pm.expect(body.altura_cm).to.equal(175);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{auth_token}}" }],
+            "url": "{{base_url}}/api/ficha"
+          }
+        },
+        {
+          "name": "PUT /api/ficha - sin token retorna 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 sin Authorization', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/ficha",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"000000000\",\n  \"alergias\": [],\n  \"condiciones\": [],\n  \"medicamentos\": [],\n  \"contactos\": []\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Emergencia",
+      "item": [
+        {
+          "name": "GET /api/emergency/:token - token válido (sin auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Devuelve nombre_completo', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('nombre_completo');",
+                  "    pm.expect(body.nombre_completo).to.include('Newman');",
+                  "});",
+                  "",
+                  "pm.test('No requiere autenticación JWT', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Tiene arrays de alergias, condiciones, medicamentos y contactos', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.alergias).to.be.an('array');",
+                  "    pm.expect(body.condiciones).to.be.an('array');",
+                  "    pm.expect(body.medicamentos).to.be.an('array');",
+                  "    pm.expect(body.contactos).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Datos de alergias del upsert previo visibles', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.alergias.length).to.be.at.least(1);",
+                  "    pm.expect(body.alergias[0]).to.have.property('severidad');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/emergency/{{qr_token}}"
+          }
+        },
+        {
+          "name": "GET /api/emergency/:token - token inexistente retorna 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 para token inexistente', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('Mensaje de error correcto', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.detail).to.include('no encontrado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/emergency/00000000-0000-0000-0000-000000000000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Token QR",
+      "item": [
+        {
+          "name": "POST /api/ficha/token/revoke - revocar y regenerar token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Devuelve ok:true y new_token', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.ok).to.equal(true);",
+                  "    pm.expect(body).to.have.property('new_token');",
+                  "    pm.expect(body.new_token).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set('revoked_token', pm.collectionVariables.get('qr_token'));",
+                  "    pm.collectionVariables.set('qr_token', body.new_token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{auth_token}}" }],
+            "url": "{{base_url}}/api/ficha/token/revoke"
+          }
+        },
+        {
+          "name": "GET /api/emergency/:token - token revocado retorna 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 para token revocado', () => pm.response.to.have.status(403));",
+                  "",
+                  "pm.test('Mensaje indica que fue revocado', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.detail).to.include('revocado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/emergency/{{revoked_token}}"
+          }
+        },
+        {
+          "name": "GET /api/emergency/:new_token - nuevo token activo funciona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 con el nuevo token', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Devuelve datos de emergencia válidos', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('nombre_completo');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/emergency/{{qr_token}}"
+          }
+        },
+        {
+          "name": "POST /api/ficha/token/revoke - sin token retorna 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 sin Authorization', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/ficha/token/revoke"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "auth_token", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "qr_token", "value": "" },
+    { "key": "revoked_token", "value": "" },
+    { "key": "alergia_id", "value": "" },
+    { "key": "condicion_id", "value": "" },
+    { "key": "test_email", "value": "" },
+    { "key": "test_doc", "value": "" }
+  ]
+}
