@@ -22,7 +22,7 @@ class TestEmergenciaPublica:
     def test_token_formato_incorrecto_retorna_error(self, client):
         """Un token con formato no UUID retorna error de validación."""
         response = client.get(f"/api/emergency/{TOKEN_FORMATO_INCORRECTO}")
-        assert response.status_code in (404, 422, 400, 500)
+        assert response.status_code in (404, 422, 400)
 
     def test_emergencia_no_requiere_autenticacion(self, client, auth_client):
         """

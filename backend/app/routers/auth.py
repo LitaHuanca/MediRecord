@@ -37,6 +37,15 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Este correo ya está registrado.")
 
+    existing_doc = await db.scalar(
+        select(Usuario).where(
+            Usuario.numero_documento == body.numero_documento,
+            Usuario.tipo_documento == body.tipo_documento,
+        )
+    )
+    if existing_doc:
+        raise HTTPException(status_code=409, detail="Este número de documento ya está registrado.")
+
     user = Usuario(
         email=body.email.lower(),
         nombres=body.nombres,

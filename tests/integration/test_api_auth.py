@@ -57,7 +57,7 @@ class TestRegistro:
         assert response.status_code in (400, 409)  # API retorna 409 Conflict
 
     def test_registro_dni_duplicado_retorna_error(self, client, registered_user):
-        """Registrar con un DNI ya existente debe retornar error."""
+        """Registrar con un DNI ya existente debe retornar 409."""
         response = client.post("/auth/register", json={
             "email": "email_nuevo_unico@medirecord.com",
             "password": "TestSQA2026!",

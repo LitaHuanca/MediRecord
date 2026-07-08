@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+import uuid
 
 from app.database import get_db
 from app.models.tables import (
@@ -19,6 +20,11 @@ async def get_emergency_ficha(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    try:
+        uuid.UUID(token)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Formato de token inválido. Se esperaba un UUID.")
+
     token_row = await db.scalar(
         select(TokenQR)
         .where(TokenQR.id == token)
