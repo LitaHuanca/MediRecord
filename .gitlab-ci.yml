@@ -5,11 +5,9 @@ stages:
 variables:
   TEST_API_URL: "https://medirecord-staging.onrender.com"
   E2E_BASE_URL: "https://medirecor-deployada-2aspxo5m1-lita-park-s-projects.vercel.app"
-  E2E_API_URL:  "https://medirecord-staging.onrender.com"
-  # JWT_SECRET y DATABASE_URL se configuran como CI/CD Variables en GitLab
-  # (Settings → CI/CD → Variables) — nunca hardcodeadas aquí
+  E2E_API_URL: "https://medirecord-staging.onrender.com"
 
-# ── Tests unitarios e integración (pytest) ─────────────────────────────────
+# Tests unitarios e integracion (pytest)
 pytest:
   stage: test
   image: python:3.11-slim
@@ -27,11 +25,11 @@ pytest:
       - coverage.xml
     expire_in: 7 days
   coverage: '/TOTAL.*\s+(\d+%)$/'
-  only:
-    - develop
-    - merge_requests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-# ── Tests E2E con Playwright ───────────────────────────────────────────────
+# Tests E2E con Playwright
 playwright:
   stage: e2e
   image: mcr.microsoft.com/playwright:v1.49.0-jammy
@@ -48,7 +46,7 @@ playwright:
     reports:
       junit: playwright-results.xml
     expire_in: 7 days
-  only:
-    - develop
-    - merge_requests
-  allow_failure: true  # E2E pueden fallar por cold start de Render sin bloquear el pipeline
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  allow_failure: true
