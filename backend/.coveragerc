@@ -1,0 +1,11 @@
+[run]
+source = app
+omit =
+    app/database.py
+    app/config.py
+
+[report]
+show_missing = true
+
+[html]
+directory = ../reports/coverage
