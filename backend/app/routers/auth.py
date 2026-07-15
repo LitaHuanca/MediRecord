@@ -7,7 +7,7 @@ import bcrypt
 
 from app.database import get_db
 from app.config import settings
-from app.models.tables import Usuario, TokenQR
+from app.models.tables import Usuario
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserOut, ChangePasswordRequest
 from app.dependencies import get_current_user as get_current_user_dep
 
@@ -60,8 +60,6 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.flush()
 
-    token_qr = TokenQR(usuario_id=user.id, estado="activo")
-    db.add(token_qr)
     await db.commit()
     await db.refresh(user)
 
