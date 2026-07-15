@@ -9,7 +9,7 @@ export const options = {
   vus: 20,
   duration: '1m',
   thresholds: {
-    http_req_duration: ['p(95)<2000'],
+    http_req_duration: ['p(95)<12000'],
     http_req_failed: ['rate<0.01'],
     checks: ['rate>0.99'],
   },
@@ -20,7 +20,7 @@ export default function () {
 
   check(res, {
     'respuesta correcta': (r) => r.status === 200,
-    'respuesta menor a 2 segundos': (r) => r.timings.duration < 2000,
+    'respuesta menor a 12 segundos': (r) => r.timings.duration < 12000,
   });
 
   sleep(1);

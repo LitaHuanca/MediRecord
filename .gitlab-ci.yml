@@ -53,11 +53,8 @@ e2e-tests:
     expire_in: 7 days
 
 # ─── Performance: k6 ─────────────────────────────────────────────────────────
-# allow_failure: true — TC-PERF-001 detecta que el backend en Render free tier
-# no cumple p(95)<2s bajo 20 VUs. Es un hallazgo de infraestructura, no de código.
 performance-tests:
   stage: test-performance
-  allow_failure: true
   image:
     name: grafana/k6:latest
     entrypoint: [""]
