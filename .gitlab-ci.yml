@@ -35,6 +35,7 @@ e2e-tests:
   before_script:
     - cd $CI_PROJECT_DIR/tests/e2e && npm install --quiet
     - npx playwright install --with-deps chromium
+    - echo "VITE_API_URL=$STAGING_API_URL" > $CI_PROJECT_DIR/frontend/.env.local
     - cd $CI_PROJECT_DIR/frontend && npm ci --quiet && npm run dev > /dev/null 2>&1 &
     - cd $CI_PROJECT_DIR
     - |
