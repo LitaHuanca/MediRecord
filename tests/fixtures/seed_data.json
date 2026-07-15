@@ -1,0 +1,70 @@
+{
+  "_descripcion": "Datos de prueba ficticios para MediRecord. Prefijo TEST_ obligatorio. No usar en producción.",
+  "usuarios": [
+    {
+      "id": "TEST-UUID-001",
+      "nombre": "TEST_ciudadano_completo",
+      "email": "TEST_ciudadano_completo@medirecord.test",
+      "password_hash": "<hash-generado-en-setup>",
+      "rol": "ciudadano",
+      "credencial_estado": "activa",
+      "ficha": {
+        "completa": true,
+        "grupo_sanguineo": "O+",
+        "alergias": ["penicilina"],
+        "condiciones_cronicas": ["hipertensión"],
+        "medicamentos_actuales": ["losartan 50mg"]
+      },
+      "proposito": "Caso base: flujo completo de ciudadano con ficha y QR activo (TC-BE-001, TC-FE-001)"
+    },
+    {
+      "id": "TEST-UUID-002",
+      "nombre": "TEST_ciudadano_alergia_critica",
+      "email": "TEST_ciudadano_alergia@medirecord.test",
+      "password_hash": "<hash-generado-en-setup>",
+      "rol": "ciudadano",
+      "credencial_estado": "activa",
+      "ficha": {
+        "completa": true,
+        "grupo_sanguineo": "A-",
+        "alergias": ["aspirina", "ibuprofeno", "latex"],
+        "alerta_critica": true,
+        "condiciones_cronicas": [],
+        "medicamentos_actuales": []
+      },
+      "proposito": "Verificar que la ficha de emergencia muestre alerta de alergia crítica visible (TC-FE-013)"
+    },
+    {
+      "id": "TEST-UUID-003",
+      "nombre": "TEST_ciudadano_credencial_revocada",
+      "email": "TEST_credencial_revocada@medirecord.test",
+      "password_hash": "<hash-generado-en-setup>",
+      "rol": "ciudadano",
+      "credencial_estado": "revocada",
+      "ficha": {
+        "completa": true,
+        "grupo_sanguineo": "B+",
+        "alergias": [],
+        "condiciones_cronicas": [],
+        "medicamentos_actuales": []
+      },
+      "proposito": "Verificar que el sistema rechace login y QR con credencial revocada (TC-BE-010, TC-SEC-003)"
+    },
+    {
+      "id": "TEST-UUID-004",
+      "nombre": "TEST_ciudadano_ficha_incompleta",
+      "email": "TEST_ficha_incompleta@medirecord.test",
+      "password_hash": "<hash-generado-en-setup>",
+      "rol": "ciudadano",
+      "credencial_estado": "activa",
+      "ficha": {
+        "completa": false,
+        "grupo_sanguineo": null,
+        "alergias": [],
+        "condiciones_cronicas": [],
+        "medicamentos_actuales": []
+      },
+      "proposito": "Verificar comportamiento del sistema y UI cuando la ficha está incompleta (TC-FE-005)"
+    }
+  ]
+}

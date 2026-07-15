@@ -1,0 +1,34 @@
+{
+  "id": "medirecord-staging",
+  "name": "MediRecord - Staging",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "https://staging.medirecord.example.com",
+      "enabled": true
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "enabled": true
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "enabled": true,
+      "description": "Se rellena automáticamente tras ejecutar el request de login"
+    },
+    {
+      "key": "test_user_email",
+      "value": "TEST_ciudadano@medirecord.test",
+      "enabled": true
+    },
+    {
+      "key": "test_user_password",
+      "value": "",
+      "enabled": true,
+      "description": "Cargar desde variable de entorno o secret manager, nunca hardcodear"
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}
