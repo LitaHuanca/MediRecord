@@ -1,70 +1,172 @@
 {
-  "_descripcion": "Datos de prueba ficticios para MediRecord. Prefijo TEST_ obligatorio. No usar en producción.",
+  "_descripcion": "Datos de prueba ficticios para MediRecord Staging. Prefijo TEST_ obligatorio. No usar en producción.",
+  "_proyecto_supabase": "lieesdhzfsfxybkgegqb (MediRecord_Staging)",
+  "_password_prueba": "TEST_Password_2024!  (bcrypt cost 12, generado con pgcrypto)",
+  "_como_limpiar": "DELETE FROM usuarios WHERE id IN ('a1a10000-...','b2b20000-...','c3c30000-...','d4d40000-...')",
+
   "usuarios": [
     {
-      "id": "TEST-UUID-001",
-      "nombre": "TEST_ciudadano_completo",
-      "email": "TEST_ciudadano_completo@medirecord.test",
-      "password_hash": "<hash-generado-en-setup>",
-      "rol": "ciudadano",
-      "credencial_estado": "activa",
-      "ficha": {
-        "completa": true,
-        "grupo_sanguineo": "O+",
-        "alergias": ["penicilina"],
-        "condiciones_cronicas": ["hipertensión"],
-        "medicamentos_actuales": ["losartan 50mg"]
-      },
-      "proposito": "Caso base: flujo completo de ciudadano con ficha y QR activo (TC-BE-001, TC-FE-001)"
-    },
-    {
-      "id": "TEST-UUID-002",
-      "nombre": "TEST_ciudadano_alergia_critica",
-      "email": "TEST_ciudadano_alergia@medirecord.test",
-      "password_hash": "<hash-generado-en-setup>",
-      "rol": "ciudadano",
-      "credencial_estado": "activa",
-      "ficha": {
-        "completa": true,
-        "grupo_sanguineo": "A-",
-        "alergias": ["aspirina", "ibuprofeno", "latex"],
-        "alerta_critica": true,
-        "condiciones_cronicas": [],
-        "medicamentos_actuales": []
-      },
-      "proposito": "Verificar que la ficha de emergencia muestre alerta de alergia crítica visible (TC-FE-013)"
-    },
-    {
-      "id": "TEST-UUID-003",
-      "nombre": "TEST_ciudadano_credencial_revocada",
-      "email": "TEST_credencial_revocada@medirecord.test",
-      "password_hash": "<hash-generado-en-setup>",
-      "rol": "ciudadano",
-      "credencial_estado": "revocada",
-      "ficha": {
-        "completa": true,
-        "grupo_sanguineo": "B+",
+      "id": "a1a10000-0000-0000-0000-000000000001",
+      "nombres": "TEST_Felicitas",
+      "apellido_paterno": "TEST_Quijano",
+      "apellido_materno": "TEST_Medina",
+      "tipo_documento": "DNI",
+      "numero_documento": "91111001",
+      "email": "test_usuario_a@medirecord.test",
+      "activo": true,
+      "perfil_medico": {
+        "id": "a1a10000-0000-0000-0000-000000000011",
+        "tipo_sangre": "O+",
+        "sexo": "femenino",
+        "fecha_nacimiento": "1990-05-15",
+        "donante_organos": true,
+        "peso_kg": 65.5,
+        "altura_cm": 163,
         "alergias": [],
-        "condiciones_cronicas": [],
-        "medicamentos_actuales": []
+        "condiciones": [],
+        "medicamentos": []
       },
-      "proposito": "Verificar que el sistema rechace login y QR con credencial revocada (TC-BE-010, TC-SEC-003)"
+      "contactos_emergencia": [
+        { "nombre": "TEST_Contacto_A1_Esposo",  "telefono": "912340001", "relacion": "conyugue",  "orden": 1 },
+        { "nombre": "TEST_Contacto_A2_Hermana", "telefono": "912340002", "relacion": "familiar",  "orden": 2 }
+      ],
+      "credencial": {
+        "token_id": "4a100000-0000-0000-0000-000000000001",
+        "estado": "activo"
+      },
+      "proposito": "TC-BE-001, TC-FE-001 — Caso base: flujo completo con ficha 100% y QR activo."
     },
+
     {
-      "id": "TEST-UUID-004",
-      "nombre": "TEST_ciudadano_ficha_incompleta",
-      "email": "TEST_ficha_incompleta@medirecord.test",
-      "password_hash": "<hash-generado-en-setup>",
-      "rol": "ciudadano",
-      "credencial_estado": "activa",
-      "ficha": {
-        "completa": false,
-        "grupo_sanguineo": null,
-        "alergias": [],
-        "condiciones_cronicas": [],
-        "medicamentos_actuales": []
+      "id": "b2b20000-0000-0000-0000-000000000002",
+      "nombres": "TEST_Bruno",
+      "apellido_paterno": "TEST_Salcedo",
+      "apellido_materno": "TEST_Vega",
+      "tipo_documento": "DNI",
+      "numero_documento": "91111002",
+      "email": "test_usuario_b@medirecord.test",
+      "activo": true,
+      "perfil_medico": {
+        "id": "b2b20000-0000-0000-0000-000000000022",
+        "tipo_sangre": "A-",
+        "sexo": "masculino",
+        "fecha_nacimiento": "1985-11-22",
+        "donante_organos": false,
+        "peso_kg": 78.0,
+        "altura_cm": 175,
+        "alergias": [
+          {
+            "alergia_id": "96eef2d7-e56d-40e2-9502-fc87133c5588",
+            "nombre": "Penicilina",
+            "severidad": "anafilaxia",
+            "reaccion": "Shock anafiláctico con urticaria generalizada y colapso respiratorio. Requiere EpiPen inmediato."
+          }
+        ],
+        "condiciones": [
+          {
+            "condicion_id": "81edd088-e3be-407c-8ca1-582d1a1f605f",
+            "nombre": "Asma",
+            "estado": "activa",
+            "tratamiento": "Salbutamol inhalado 200mcg según necesidad."
+          }
+        ],
+        "medicamentos": []
       },
-      "proposito": "Verificar comportamiento del sistema y UI cuando la ficha está incompleta (TC-FE-005)"
+      "contactos_emergencia": [
+        { "nombre": "TEST_Contacto_B1_Madre",  "telefono": "912340003", "relacion": "familiar",        "orden": 1 },
+        { "nombre": "TEST_Contacto_B2_Medico", "telefono": "912340004", "relacion": "medico_personal", "orden": 2 }
+      ],
+      "credencial": {
+        "token_id": "4b200000-0000-0000-0000-000000000002",
+        "estado": "activo"
+      },
+      "proposito": "TC-FE-013 — Validar que la vista de emergencia muestre el banner de alergia crítica (anafilaxia a Penicilina)."
+    },
+
+    {
+      "id": "c3c30000-0000-0000-0000-000000000003",
+      "nombres": "TEST_Carmen",
+      "apellido_paterno": "TEST_Flores",
+      "apellido_materno": "TEST_Rios",
+      "tipo_documento": "DNI",
+      "numero_documento": "91111003",
+      "email": "test_usuario_c@medirecord.test",
+      "activo": true,
+      "perfil_medico": {
+        "id": "c3c30000-0000-0000-0000-000000000033",
+        "tipo_sangre": "B+",
+        "sexo": "femenino",
+        "fecha_nacimiento": "1978-03-08",
+        "donante_organos": false,
+        "peso_kg": 60.0,
+        "altura_cm": 158,
+        "alergias": [
+          {
+            "alergia_id": "f23b18f8-025b-4f94-af93-2aa01809189c",
+            "nombre": "Látex",
+            "severidad": "moderada",
+            "reaccion": "Dermatitis de contacto al usar guantes de látex."
+          }
+        ],
+        "condiciones": [],
+        "medicamentos": []
+      },
+      "contactos_emergencia": [
+        { "nombre": "TEST_Contacto_C1_Padre", "telefono": "912340005", "relacion": "familiar", "orden": 1 }
+      ],
+      "credencial": {
+        "token_id": "4c300000-0000-0000-0000-000000000003",
+        "estado": "revocado",
+        "motivo": "Pérdida del dispositivo"
+      },
+      "proposito": "TC-BE-010, TC-SEC-003 — Validar acceso denegado con QR revocado."
+    },
+
+    {
+      "id": "d4d40000-0000-0000-0000-000000000004",
+      "nombres": "TEST_Diego",
+      "apellido_paterno": "TEST_Paredes",
+      "apellido_materno": "TEST_Luna",
+      "tipo_documento": "DNI",
+      "numero_documento": "91111004",
+      "email": "test_usuario_d@medirecord.test",
+      "activo": true,
+      "perfil_medico": {
+        "id": "d4d40000-0000-0000-0000-000000000044",
+        "tipo_sangre": "AB+",
+        "sexo": "masculino",
+        "fecha_nacimiento": "2000-07-30",
+        "donante_organos": false,
+        "peso_kg": null,
+        "altura_cm": null,
+        "_nota": "Pasos 3 (medicación) y 4 (contactos de emergencia) deliberadamente incompletos.",
+        "alergias": [],
+        "condiciones": [
+          {
+            "condicion_id": "8b9db9fb-63d2-4a7c-9cc9-1ec7d0350234",
+            "nombre": "Hipertensión Arterial",
+            "estado": "controlada",
+            "tratamiento": "En evaluación inicial, sin tratamiento definido aún."
+          }
+        ],
+        "medicamentos": []
+      },
+      "contactos_emergencia": [],
+      "credencial": null,
+      "proposito": "TC-FE-005 — Validar comportamiento de UI y bloqueo de generación de QR con ficha incompleta."
     }
-  ]
+  ],
+
+  "_limpieza_sql": {
+    "_descripcion": "Ejecutar para eliminar todos los datos TEST_ de staging",
+    "orden": [
+      "DELETE FROM tokens_qr      WHERE usuario_id IN ('a1a10000-0000-0000-0000-000000000001','b2b20000-0000-0000-0000-000000000002','c3c30000-0000-0000-0000-000000000003','d4d40000-0000-0000-0000-000000000004');",
+      "DELETE FROM contactos_emergencia WHERE usuario_id IN ('a1a10000-0000-0000-0000-000000000001','b2b20000-0000-0000-0000-000000000002','c3c30000-0000-0000-0000-000000000003','d4d40000-0000-0000-0000-000000000004');",
+      "DELETE FROM perfil_alergias    WHERE perfil_id IN ('a1a10000-0000-0000-0000-000000000011','b2b20000-0000-0000-0000-000000000022','c3c30000-0000-0000-0000-000000000033','d4d40000-0000-0000-0000-000000000044');",
+      "DELETE FROM perfil_condiciones  WHERE perfil_id IN ('a1a10000-0000-0000-0000-000000000011','b2b20000-0000-0000-0000-000000000022','c3c30000-0000-0000-0000-000000000033','d4d40000-0000-0000-0000-000000000044');",
+      "DELETE FROM perfil_medicamentos WHERE perfil_id IN ('a1a10000-0000-0000-0000-000000000011','b2b20000-0000-0000-0000-000000000022','c3c30000-0000-0000-0000-000000000033','d4d40000-0000-0000-0000-000000000044');",
+      "DELETE FROM perfiles_medicos   WHERE usuario_id IN ('a1a10000-0000-0000-0000-000000000001','b2b20000-0000-0000-0000-000000000002','c3c30000-0000-0000-0000-000000000003','d4d40000-0000-0000-0000-000000000004');",
+      "DELETE FROM usuarios            WHERE id          IN ('a1a10000-0000-0000-0000-000000000001','b2b20000-0000-0000-0000-000000000002','c3c30000-0000-0000-0000-000000000003','d4d40000-0000-0000-0000-000000000004');"
+    ]
+  }
 }
