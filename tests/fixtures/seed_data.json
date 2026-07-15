@@ -12,7 +12,7 @@
       "apellido_materno": "TEST_Medina",
       "tipo_documento": "DNI",
       "numero_documento": "91111001",
-      "email": "test_usuario_a@medirecord.test",
+      "email": "test_usuario_a@medirecord.com",
       "activo": true,
       "perfil_medico": {
         "id": "a1a10000-0000-0000-0000-000000000011",
@@ -44,7 +44,7 @@
       "apellido_materno": "TEST_Vega",
       "tipo_documento": "DNI",
       "numero_documento": "91111002",
-      "email": "test_usuario_b@medirecord.test",
+      "email": "test_usuario_b@medirecord.com",
       "activo": true,
       "perfil_medico": {
         "id": "b2b20000-0000-0000-0000-000000000022",
@@ -90,7 +90,7 @@
       "apellido_materno": "TEST_Rios",
       "tipo_documento": "DNI",
       "numero_documento": "91111003",
-      "email": "test_usuario_c@medirecord.test",
+      "email": "test_usuario_c@medirecord.com",
       "activo": true,
       "perfil_medico": {
         "id": "c3c30000-0000-0000-0000-000000000033",
@@ -129,7 +129,7 @@
       "apellido_materno": "TEST_Luna",
       "tipo_documento": "DNI",
       "numero_documento": "91111004",
-      "email": "test_usuario_d@medirecord.test",
+      "email": "test_usuario_d@medirecord.com",
       "activo": true,
       "perfil_medico": {
         "id": "d4d40000-0000-0000-0000-000000000044",
@@ -154,6 +154,42 @@
       "contactos_emergencia": [],
       "credencial": null,
       "proposito": "TC-FE-005 — Validar comportamiento de UI y bloqueo de generación de QR con ficha incompleta."
+    }
+  ],
+
+    {
+      "id": "e5e50000-0000-0000-0000-000000000005",
+      "nombres": "TEST_Elena",
+      "apellido_paterno": "TEST_Bustamante",
+      "apellido_materno": "TEST_Cano",
+      "tipo_documento": "DNI",
+      "numero_documento": "91111005",
+      "email": "test_usuario_e@medirecord.com",
+      "activo": true,
+      "perfil_medico": {
+        "id": "e5e50000-0000-0000-0000-000000000055",
+        "tipo_sangre": "AB-",
+        "sexo": "femenino",
+        "fecha_nacimiento": "1995-09-12",
+        "donante_organos": true,
+        "peso_kg": 57.0,
+        "altura_cm": 161,
+        "alergias": [
+          {
+            "alergia_id": "b2f8ac5d-d2ba-4fd0-96d4-1e1411048a57",
+            "nombre": "Polen",
+            "severidad": "leve",
+            "reaccion": "Rinitis estacional leve en temporada de primavera."
+          }
+        ],
+        "condiciones": [],
+        "medicamentos": []
+      },
+      "contactos_emergencia": [
+        { "nombre": "TEST_Contacto_E1_Hermano", "telefono": "912340006", "relacion": "familiar", "orden": 1 }
+      ],
+      "credencial": null,
+      "proposito": "TC-BE-011 — Ficha 100% completa sin credencial QR generada. Valida primera generación de token de emergencia."
     }
   ],
 
