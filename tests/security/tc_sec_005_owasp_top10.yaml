@@ -1,0 +1,52 @@
+env:
+  vars:
+    target: https://staging.medirecord.example.com
+  contexts:
+    - name: medirecord-sec-005
+      urls:
+        - ${target}
+      includePaths:
+        - ${target}/.*
+      excludePaths:
+        - ${target}/auth/password.*
+        - ${target}/api/ficha/token/revoke.*
+
+jobs:
+  # TC-SEC-005: escaneo automatizado OWASP sobre staging autorizado
+  - type: spider
+    parameters:
+      context: medirecord-sec-005
+      maxDuration: 2
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+
+  - type: activeScan
+    parameters:
+      context: medirecord-sec-005
+      defaultStrength: Medium
+      defaultThreshold: Medium
+      maxScanDurationInMins: 5
+      delayInMs: 100
+
+  - type: report
+    parameters:
+      template: risk-confidence-html
+      reportDir: evidencias
+      reportFile: TC-SEC-005_owasp_top10
+      reportTitle: TC-SEC-005 OWASP Top 10
+      displayReport: false
+    risks:
+      - high
+      - medium
+      - low
+      - info
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 2

@@ -1,0 +1,27 @@
+============================================================
+MEDIRECORD - EVIDENCIA DE EJECUCION
+============================================================
+Caso de prueba : TC-SEC-001
+Herramienta     : k6
+Tipo            : Validacion QR y NFC
+Resultado       : APROBADO
+
+Escenario:
+Se comparo el UUID incluido en el payload del codigo QR con el UUID
+preparado para la vinculacion NFC.
+
+UUID QR  : 4a100000-0000-0000-0000-000000000001
+UUID NFC : 4a100000-0000-0000-0000-000000000001
+
+checks_total.................: 3
+checks_succeeded.............: 3
+checks_failed................: 0
+checks.......................: 100.00%
+
+[PASS] QR contiene el UUID esperado
+[PASS] NFC contiene el UUID esperado
+[PASS] QR y NFC usan el mismo UUID
+
+Resultado final:
+El QR y el payload NFC apuntan al mismo UUID opaco.
+============================================================

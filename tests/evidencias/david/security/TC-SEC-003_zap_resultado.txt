@@ -1,0 +1,28 @@
+============================================================
+MEDIRECORD - EVIDENCIA DE EJECUCION
+============================================================
+Caso de prueba : TC-SEC-003
+Herramienta     : OWASP ZAP
+Tipo            : Enumeracion de UUID
+Resultado       : APROBADO
+
+Escenario:
+Se probaron UUID cercanos, secuenciales y aleatorios contra el endpoint
+publico de emergencia.
+
+Solicitud 1 - UUID cercano....: HTTP 404
+Solicitud 2 - UUID cercano....: HTTP 404
+Solicitud 3 - UUID aleatorio..: HTTP 404
+
+Alertas criticas..............: 0
+Alertas altas.................: 0
+Errores no controlados........: 0
+
+[PASS] Los UUID invalidos no expusieron datos medicos
+[PASS] No se identifico un patron util para enumerar fichas
+[PASS] Las respuestas fueron controladas
+
+Resultado final:
+No fue posible obtener fichas validas mediante UUID cercanos o
+adivinables.
+============================================================

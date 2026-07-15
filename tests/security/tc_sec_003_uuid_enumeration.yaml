@@ -1,0 +1,46 @@
+env:
+  vars:
+    target: https://staging.medirecord.example.com
+  contexts:
+    - name: medirecord-sec-003
+      urls:
+        - ${target}
+      includePaths:
+        - ${target}/api/emergency/.*
+
+jobs:
+  # TC-SEC-003: prueba UUID cercanos que no deben existir
+  - type: requestor
+    requests:
+      - name: UUID cercano 1
+        url: ${target}/api/emergency/4a100000-0000-0000-0000-000000000002
+        method: GET
+        responseCode: 404
+      - name: UUID cercano 2
+        url: ${target}/api/emergency/4a100000-0000-0000-0000-000000000003
+        method: GET
+        responseCode: 404
+      - name: UUID aleatorio
+        url: ${target}/api/emergency/99999999-9999-9999-9999-999999999999
+        method: GET
+        responseCode: 404
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 1
+
+  - type: report
+    parameters:
+      template: risk-confidence-html
+      reportDir: evidencias
+      reportFile: TC-SEC-003_uuid_enumeration
+      reportTitle: TC-SEC-003 UUID Enumeration
+      displayReport: false
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 2

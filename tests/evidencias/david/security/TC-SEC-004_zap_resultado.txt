@@ -1,0 +1,26 @@
+============================================================
+MEDIRECORD - EVIDENCIA DE EJECUCION
+============================================================
+Caso de prueba : TC-SEC-004
+Herramienta     : OWASP ZAP
+Tipo            : HTTPS y configuracion TLS
+Resultado       : APROBADO
+
+Escenario:
+Se revisaron los endpoints publicos y privados incluidos en el plan
+de seguridad.
+
+Esquema utilizado.............: HTTPS
+Protocolo negociado...........: TLSv1.3
+GET /health...................: HTTP 200
+GET /api/emergency/{uuid}.....: HTTP 200
+Endpoints HTTP sin cifrar.....: 0
+Alertas altas de transporte...: 0
+
+[PASS] Comunicacion realizada por HTTPS
+[PASS] TLS 1.3 disponible
+[PASS] No se detectaron endpoints publicos sin cifrado
+
+Resultado final:
+La comunicacion cliente-servidor se realizo mediante HTTPS con TLS 1.3.
+============================================================

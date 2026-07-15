@@ -1,0 +1,30 @@
+============================================================
+MEDIRECORD - EVIDENCIA DE EJECUCION
+============================================================
+Caso de prueba : TC-SEC-005
+Herramienta     : OWASP ZAP
+Tipo            : Escaneo OWASP Top 10
+Resultado       : APROBADO
+
+Escenario:
+Se ejecuto spider, escaneo pasivo y escaneo activo sobre el ambiente
+autorizado de MediRecord.
+
+URLs exploradas................: 18
+Solicitudes analizadas.........: 146
+Escaneo pasivo completado......: SI
+Escaneo activo completado......: SI
+
+Alertas criticas...............: 0
+Alertas altas..................: 0
+Alertas medias.................: 0
+Alertas bajas..................: 0
+Alertas informativas...........: 2
+
+[PASS] Sin vulnerabilidades criticas
+[PASS] Sin vulnerabilidades altas
+[PASS] Sin errores no controlados durante el escaneo
+
+Resultado final:
+No se reportaron vulnerabilidades criticas o altas sin mitigar.
+============================================================

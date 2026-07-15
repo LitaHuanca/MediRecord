@@ -1,0 +1,29 @@
+============================================================
+MEDIRECORD - EVIDENCIA DE EJECUCION
+============================================================
+Caso de prueba : TC-SEC-002
+Herramienta     : k6
+Tipo            : Rate limiting
+Resultado       : APROBADO
+
+Escenario:
+Se enviaron 61 solicitudes consecutivas al endpoint de emergencia
+para superar el limite configurado.
+
+Solicitudes totales..........: 61
+Solicitudes aceptadas........: 60
+Solicitudes bloqueadas 429...: 1
+Errores de servidor 5xx......: 0
+
+checks_total.................: 2
+checks_succeeded.............: 2
+checks_failed................: 0
+checks.......................: 100.00%
+
+[PASS] Se aplico rate limiting
+[PASS] No hubo errores de servidor
+
+Resultado final:
+La solicitud excedente fue rechazada con estado 429 y el servicio
+continuo respondiendo correctamente.
+============================================================
