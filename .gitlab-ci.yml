@@ -33,9 +33,9 @@ e2e-tests:
   stage: test-e2e
   image: node:24-bookworm
   before_script:
-    - npm install -g @playwright/test --quiet
+    - cd $CI_PROJECT_DIR/tests/e2e && npm install --quiet
     - npx playwright install --with-deps chromium
-    - cd frontend && npm ci --quiet && npm run dev > /dev/null 2>&1 &
+    - cd $CI_PROJECT_DIR/frontend && npm ci --quiet && npm run dev > /dev/null 2>&1 &
     - cd $CI_PROJECT_DIR
     - |
       echo "Esperando que Vite levante en localhost:5173..."
@@ -44,7 +44,7 @@ e2e-tests:
         sleep 3
       done
   script:
-    - npx playwright test --config tests/e2e/playwright.config.ts
+    - cd $CI_PROJECT_DIR/tests/e2e && npx playwright test
   artifacts:
     when: always
     paths:
