@@ -1,0 +1,40 @@
+env:
+  vars:
+    target: https://staging.medirecord.example.com
+  contexts:
+    - name: medirecord-sec-004
+      urls:
+        - ${target}
+
+jobs:
+  # TC-SEC-004: verifica acceso por HTTPS y revisa hallazgos de transporte
+  - type: requestor
+    requests:
+      - name: Health por HTTPS
+        url: ${target}/health
+        method: GET
+        responseCode: 200
+      - name: Emergencia por HTTPS
+        url: ${target}/api/emergency/4a100000-0000-0000-0000-000000000001
+        method: GET
+        responseCode: 200
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 1
+
+  - type: report
+    parameters:
+      template: risk-confidence-html
+      reportDir: evidencias
+      reportFile: TC-SEC-004_https_tls
+      reportTitle: TC-SEC-004 HTTPS y TLS
+      displayReport: false
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 2

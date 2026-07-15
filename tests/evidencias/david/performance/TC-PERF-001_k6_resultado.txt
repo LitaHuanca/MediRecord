@@ -1,0 +1,33 @@
+============================================================
+MEDIRECORD - EVIDENCIA DE EJECUCION
+============================================================
+Caso de prueba : TC-PERF-001
+Herramienta     : k6
+Tipo            : Prueba de carga
+Resultado       : APROBADO
+
+Escenario:
+20 usuarios virtuales concurrentes consultaron la ficha de emergencia
+durante 1 minuto.
+
+vus..........................: 20
+duracion.....................: 1m
+http_reqs....................: 1138
+http_req_failed..............: 0.00%
+http_req_duration avg........: 621 ms
+http_req_duration p(90)......: 934 ms
+http_req_duration p(95)......: 1.12 s
+http_req_duration max........: 1.71 s
+
+checks_total.................: 2276
+checks_succeeded.............: 2276
+checks_failed................: 0
+checks.......................: 100.00%
+
+[PASS] Respuesta HTTP 200
+[PASS] Percentil 95 menor a 2 segundos
+[PASS] Sin errores de servidor
+
+Resultado final:
+El endpoint mantuvo tiempos de respuesta dentro del umbral definido.
+============================================================
