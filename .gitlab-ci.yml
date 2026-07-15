@@ -1,0 +1,60 @@
+stages:
+  - test-backend
+  - test-e2e
+  - test-performance
+
+variables:
+  STAGING_API_URL: "https://medirecord-staging.onrender.com"
+
+# ─── Backend: pytest ──────────────────────────────────────────────────────────
+backend-tests:
+  stage: test-backend
+  image: python:3.11
+  before_script:
+    - pip install --quiet -r tests/requirements-test.txt
+    - |
+      echo "Esperando que el backend despierte en Render (puede tardar ~30s)..."
+      for i in $(seq 1 12); do
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$STAGING_API_URL/docs")
+        [ "$STATUS" = "200" ] && echo "Backend listo." && break
+        echo "  intento $i/12 (HTTP $STATUS) — esperando 15s..."
+        sleep 15
+      done
+  script:
+    - pytest tests/backend/ -v
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days
+
+# ─── E2E: Playwright ──────────────────────────────────────────────────────────
+e2e-tests:
+  stage: test-e2e
+  image: mcr.microsoft.com/playwright:v1.49.0-jammy
+  before_script:
+    - cd frontend && npm ci --quiet && npm run dev > /dev/null 2>&1 &
+    - cd $CI_PROJECT_DIR
+    - |
+      echo "Esperando que Vite levante en localhost:5173..."
+      for i in $(seq 1 20); do
+        wget -q http://localhost:5173 -O /dev/null 2>/dev/null && echo "Frontend listo." && break
+        sleep 3
+      done
+  script:
+    - npx playwright test --config tests/e2e/playwright.config.ts
+  artifacts:
+    when: always
+    paths:
+      - reports/e2e/
+    expire_in: 7 days
+
+# ─── Performance: k6 ─────────────────────────────────────────────────────────
+performance-tests:
+  stage: test-performance
+  image:
+    name: grafana/k6:latest
+    entrypoint: [""]
+  script:
+    - k6 run --env BASE_URL="$STAGING_API_URL" tests/performance/tc_perf_001_emergency_load.js
+    - k6 run tests/performance/tc_sec_001_nfc_qr_uuid.js
