@@ -13,6 +13,11 @@ from app.schemas.emergency import EmergencyFichaOut, ContactoEmergOut
 
 router = APIRouter(prefix="/api/emergency", tags=["emergency"])
 
+_SEV = {"anafilaxia": "Crítica", "severa": "Severa", "moderada": "Moderada", "leve": "Leve"}
+
+def _sev(v: str) -> str:
+    return _SEV.get(v, v.capitalize())
+
 
 @router.get("/{token}", response_model=EmergencyFichaOut)
 async def get_emergency_ficha(
@@ -70,14 +75,17 @@ async def get_emergency_ficha(
 
     return EmergencyFichaOut(
         nombre_completo=usuario.nombre_completo,
+        numero_documento=usuario.numero_documento,
+        sexo=perfil.sexo if perfil else None,
         tipo_sangre=perfil.tipo_sangre if perfil else None,
         donante_organos=perfil.donante_organos if perfil else False,
         peso_kg=perfil.peso_kg if perfil else None,
         altura_cm=perfil.altura_cm if perfil else None,
         fecha_nacimiento=perfil.fecha_nacimiento if perfil else None,
         notas_adicionales=perfil.notas_adicionales if perfil else None,
+        ultima_actualizacion=perfil.updated_at if perfil else None,
         alergias=[
-            {"nombre": a.alergia.nombre, "severidad": a.severidad, "reaccion": a.reaccion_observada}
+            {"nombre": a.alergia.nombre, "severidad": _sev(a.severidad), "reaccion": a.reaccion_observada}
             for a in (perfil.alergias if perfil else [])
         ],
         condiciones=[
