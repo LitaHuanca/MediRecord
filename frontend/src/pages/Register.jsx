@@ -417,7 +417,7 @@ export default function Register() {
 
             <SectionHeader icon={<IconUser />} label="DATOS PERSONALES" />
 
-            <div style={twoColStyle}>
+            <div className="register-two-col">
               <ValidatedField label="Nombres" error={errors.nombres} touched={touched.nombres} value={form.nombres} required>
                 <input value={form.nombres}
                   onChange={e => setField('nombres')(e.target.value.replace(/[0-9]/g, ''))}
@@ -439,7 +439,7 @@ export default function Register() {
               </ValidatedField>
             </div>
 
-            <div style={twoColStyle}>
+            <div className="register-two-col">
               <ValidatedField label="Apellido Materno" error={errors.apellido_materno} touched={touched.apellido_materno} value={form.apellido_materno}>
                 <input value={form.apellido_materno}
                   onChange={e => setField('apellido_materno')(e.target.value.replace(/[0-9]/g, ''))}
@@ -456,7 +456,7 @@ export default function Register() {
               </div>
             </div>
 
-            <div style={twoColStyle}>
+            <div className="register-two-col">
               <ValidatedField label={`N° Documento · ${DOCS[form.tipo_documento].hint}`} error={errors.numero_documento} touched={touched.numero_documento} value={form.numero_documento} required>
                 <input value={form.numero_documento}
                   onChange={e => {
@@ -497,7 +497,7 @@ export default function Register() {
                 className="mr-input" />
             </ValidatedField>
 
-            <div style={twoColStyle}>
+            <div className="register-two-col">
               {/* Contraseña — noIcon para no superponer check con ojo */}
               <ValidatedField label="Contraseña" error={errors.password} touched={touched.password} value={form.password} required noIcon>
                 <input
@@ -703,7 +703,7 @@ const topBarStyle = {
 }
 
 const headerAreaStyle = {
-  padding: '26px 36px 20px',
+  padding: '26px clamp(14px, 4.5vw, 36px) 20px',
   textAlign: 'center',
   borderBottom: `1px solid ${theme.colors.border}`,
   background: 'linear-gradient(180deg, #fff 0%, #fff8f8 100%)',
@@ -768,7 +768,7 @@ const progressLabelStyle = (done, active) => ({
 /* ─── Form ────────────────────────────────────────────────────────── */
 const formStyle = {
   display: 'flex', flexDirection: 'column', gap: '13px',
-  padding: '22px 36px 26px',
+  padding: '22px clamp(14px, 4.5vw, 36px) 26px',
 }
 
 const twoColStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '13px' }
@@ -856,7 +856,7 @@ const disabledBtnStyle = {
 
 const alertStyle = (type) => ({
   display: 'flex', alignItems: 'center', gap: '9px',
-  margin: '0 36px 0',
+  margin: '0 clamp(14px, 4.5vw, 36px)',
   padding: '11px 15px',
   backgroundColor: type === 'error' ? theme.colors.dangerLight : theme.colors.successLight,
   border: `1px solid ${type === 'error' ? theme.colors.primaryBorder : '#A7F3D0'}`,

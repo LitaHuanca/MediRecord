@@ -341,7 +341,7 @@ function AddToCatalogForm({ nombre: initNombre, categories, extraFields, onConfi
         </span>
       </div>
 
-      <div style={grid2inner}>
+      <div style={grid2inner} className="register-two-col">
         {/* Nombre principal */}
         <div style={{ display:'flex', flexDirection:'column', gap:'5px', gridColumn: extraFields?.length ? '1' : 'span 2' }}>
           <label style={labelStyle}>Nombre <span style={{ color:theme.colors.primary }}>*</span></label>
@@ -812,7 +812,7 @@ export default function RegistroMultistep() {
           {currentStep === 1 && (
             <form onSubmit={handleStep1} noValidate>
               <StepTitle stepIndex={0} icon={Ic.person}/>
-              <div style={grid2}>
+              <div style={grid2} className="multistep-form-grid">
                 <VField label="Nombre Completo" required error={errors1.nombreCompleto} touched={t1.nombreCompleto} value={gen.nombreCompleto}>
                   <input value={gen.nombreCompleto} onChange={e=>setGen('nombreCompleto')(e.target.value)} onBlur={blur1('nombreCompleto')}
                     placeholder="ej. Juan Carlos Pérez Alva" style={iStyle('nombreCompleto')} className="rms-input"/>
@@ -917,7 +917,7 @@ export default function RegistroMultistep() {
 
               <div style={builderBox}>
                 <SectionLabel text="Agregar alergia"/>
-                <div style={grid2inner}>
+                <div style={grid2inner} className="register-two-col">
                   <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
                     <label style={labelStyle}>Alergia del catálogo</label>
                     <CatalogSelect items={catalogoAlergias} value={selAlergiaId} onChange={setSelAlergiaId}
@@ -988,7 +988,7 @@ export default function RegistroMultistep() {
 
               <div style={builderBox}>
                 <SectionLabel text="Agregar condición crónica"/>
-                <div style={grid2inner}>
+                <div style={grid2inner} className="register-two-col">
                   <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
                     <label style={labelStyle}>Condición del catálogo</label>
                     <CatalogSelect items={catalogoCondiciones} value={selCondId} onChange={setSelCondId}
@@ -1060,7 +1060,7 @@ export default function RegistroMultistep() {
 
               <div style={builderBox}>
                 <SectionLabel text="Agregar medicamento de uso crónico"/>
-                <div style={grid2inner}>
+                <div style={grid2inner} className="register-two-col">
 
                   <div style={{ gridColumn:'span 2', display:'flex', flexDirection:'column', gap:'5px' }}>
                     <label style={labelStyle}>Medicamento del catálogo</label>
@@ -1202,7 +1202,7 @@ export default function RegistroMultistep() {
                         )}
                       </div>
 
-                      <div style={contactoGrid}>
+                      <div style={contactoGrid} className="contacto-fields-grid">
                         {/* Nombre */}
                         <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
                           <label style={labelStyle}>Nombre <span style={{ color:theme.colors.primary }}>*</span></label>
@@ -1351,7 +1351,7 @@ const connectorStyle   = (f) => ({ position:'absolute', top:'13px', right:'50%',
 const stepCircleStyle  = (done, active) => ({ width:'26px', height:'26px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:done?'#10B981':active?theme.colors.primary:theme.colors.bgTertiary, border:`2px solid ${done?'#10B981':active?theme.colors.primary:theme.colors.border}`, transition:'all 0.25s ease', position:'relative', zIndex:1, boxShadow:active&&!done?'0 0 0 4px rgba(220,38,38,0.12)':'none' })
 const stepLblStyle     = (done, active) => ({ fontSize:'10px', fontWeight:done||active?'700':'500', color:done?'#059669':active?theme.colors.primary:theme.colors.textLight, textAlign:'center', whiteSpace:'nowrap', transition:'color 0.25s ease' })
 
-const cardStyle = { backgroundColor:theme.colors.bgPrimary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.lg, padding:'32px 36px', boxShadow:theme.shadows.card }
+const cardStyle = { backgroundColor:theme.colors.bgPrimary, border:`1px solid ${theme.colors.border}`, borderRadius:theme.borderRadius.lg, padding:'clamp(16px, 4.4vw, 32px) clamp(14px, 4.4vw, 36px)', boxShadow:theme.shadows.card }
 
 const stepTitleContainerStyle = { display:'flex', alignItems:'center', gap:'10px', borderBottom:`2px solid ${theme.colors.border}`, paddingBottom:'14px', marginBottom:'24px' }
 const stepTitleIconBoxStyle   = { display:'flex', alignItems:'center', backgroundColor:theme.colors.primaryLight, padding:'6px', borderRadius:'8px', flexShrink:0 }
